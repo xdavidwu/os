@@ -15,8 +15,8 @@ add_project_link_arguments(
 sources = [
   'arch/aarch64/init.S',
   'arch/aarch64/machines/rpi3.c',
-  'console/rpi3_mini_uart.c',
-  'console/rpi3_mini_uart.S',
+  'console/bcm2835_mini_uart.c',
+  'console/bcm2835_mini_uart.S',
   'console/cio.c',
   'console/kio.c',
   'init/main.c',

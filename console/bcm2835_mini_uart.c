@@ -1,6 +1,6 @@
-#include "rpi3_mini_uart.h"
+#include "bcm2835_mini_uart.h"
 #include "console.h"
-#include "mmio.h"
+#include "bcm2835_mmio.h"
 
 extern void __gppud_delay();
 
@@ -17,22 +17,22 @@ static void enable_gpio_mini_uart() {
 	*GPPUDCLK0 = 0;
 }
 
-static void rpi3_mini_uart_putc(uint8_t c) {
+static void bcm2835_mini_uart_putc(uint8_t c) {
 	while (!(*AUX_MU_LSR_REG & AUX_MU_LSR_TX_READY));
 	*AUX_MU_IO_REG = c;
 }
 
-static uint8_t rpi3_mini_uart_getc() {
+static uint8_t bcm2835_mini_uart_getc() {
 	while (!(*AUX_MU_LSR_REG & AUX_MU_LSR_RX_READY));
 	return *AUX_MU_IO_REG;
 }
 
-static const struct console rpi3_mini_uart_con = {
-	.putc = rpi3_mini_uart_putc,
-	.getc = rpi3_mini_uart_getc,
+static const struct console bcm2835_mini_uart_con = {
+	.putc = bcm2835_mini_uart_putc,
+	.getc = bcm2835_mini_uart_getc,
 };
 
-const struct console *rpi3_mini_uart_setup() {
+const struct console *bcm2835_mini_uart_setup() {
 	*AUXENB = AUXENB_MINIUART;
 	*AUX_MU_CNTL_REG = 0;
 	*AUX_MU_IER_REG = 0; // TODO: interrupt support
@@ -45,5 +45,5 @@ const struct console *rpi3_mini_uart_setup() {
 	*AUX_MU_IIR_REG = AUX_MU_IIR_RFIFO_CLEAR | AUX_MU_IIR_WFIFO_CLEAR;
 	*AUX_MU_CNTL_REG = AUX_MU_CNTL_RX_ENABLE | AUX_MU_CNTL_TX_ENABLE;
 
-	return &rpi3_mini_uart_con;
+	return &bcm2835_mini_uart_con;
 }

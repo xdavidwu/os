@@ -1,5 +1,5 @@
-#ifndef MMIO_H
-#define MMIO_H
+#ifndef BCM2835_MMIO_H
+#define BCM2835_MMIO_H
 
 #include <stdint.h>
 
