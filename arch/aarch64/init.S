@@ -8,4 +8,4 @@ _start:
 2:
       ldr x0, = _start
       mov sp, x0
-      bl main
+      bl machine_init
