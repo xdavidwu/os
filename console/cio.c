@@ -30,8 +30,39 @@ void cputc(struct console *con, char c) {
 		}
 		con->ccolumn = 1;
 		break;
+	case '\b':
+		con->ccolumn--;
+		if (!con->ccolumn) { // consume last column on prev line
+			if (con->cline == 1) { // 1,1 noop
+				con->ccolumn = 1;
+				return;
+			}
+			con->ccolumn = con->columns;
+			con->cline--;
+			// up, last char, FIXME hardcoded columns
+			cputs_raw(con, CSI "A" CSI "80G");
+		} else {
+			con->impl->putc('\b');
+		}
+		break;
+	case '\t':
+		if (con->ccolumn == con->columns + 1) { // full
+			cputc(con, '\n');
+			// tab at tail, don't wrap
+			return;
+		}
+		con->ccolumn = (con->ccolumn / 8 + 1) * 8 + 1;
+		if (con->ccolumn > con->columns) { // to last column
+			con->ccolumn = con->columns;
+			// FIXME hardcoded columns
+			cputs_raw(con, CSI "80G");
+		} else {
+			// TODO: should we space instead?
+			con->impl->putc('\t');
+		}
+		break;
 	default:
-		if (con->ccolumn == con->columns) { // full
+		if (con->ccolumn == con->columns + 1) { // full
 			cputc(con, '\n');
 		}
 		con->ccolumn++;
@@ -61,7 +92,7 @@ size_t cgets(struct console *con, char *str, size_t sz) {
 			break;
 		} else if (c == '\x7f') { // DEL
 			if (i && con->echo) {
-				cputs_raw(con, "\b \b");
+				cputs(con, "\b \b");
 			}
 			if (i > 0) {
 				i--;
