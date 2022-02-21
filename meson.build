@@ -19,7 +19,9 @@ sources = [
   'console/bcm2835_mini_uart.S',
   'console/cio.c',
   'console/kio.c',
+  'klibc/string.c',
   'init/main.c',
+  'init/kshell.c',
 ]
 
 elf = executable('kernel8.elf', sources, include_directories: include_directories('include'))
