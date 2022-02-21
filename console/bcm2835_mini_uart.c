@@ -24,16 +24,15 @@ static void bcm2835_mini_uart_putc(uint8_t c) {
 
 static uint8_t bcm2835_mini_uart_getc() {
 	while (!(*AUX_MU_LSR_REG & AUX_MU_LSR_RX_READY));
-	uint8_t c = *AUX_MU_IO_REG;
-	return c == '\r' ? '\n' : c; // should we really do this?
+	return *AUX_MU_IO_REG;
 }
 
-static const struct console bcm2835_mini_uart_con = {
+static const struct console_impl bcm2835_mini_uart_con = {
 	.putc = bcm2835_mini_uart_putc,
 	.getc = bcm2835_mini_uart_getc,
 };
 
-const struct console *bcm2835_mini_uart_setup() {
+const struct console_impl *bcm2835_mini_uart_setup() {
 	*AUXENB = AUXENB_MINIUART;
 	*AUX_MU_CNTL_REG = 0;
 	*AUX_MU_IER_REG = 0; // TODO: interrupt support
