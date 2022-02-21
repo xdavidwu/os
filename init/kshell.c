@@ -8,7 +8,7 @@ struct kshell_cmd {
 };
 
 static void hello() {
-	kputs("Hello World!");
+	kputs("Hello World!\n");
 }
 
 static void help();

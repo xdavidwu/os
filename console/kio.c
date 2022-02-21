@@ -1,3 +1,3 @@
 #include "kio.h"
 
-const struct console *kconsole;
+struct console *kconsole;
