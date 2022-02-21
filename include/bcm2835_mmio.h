@@ -5,6 +5,14 @@
 
 #define MMIO_BASE	0x3f000000
 
+#define PM_OFFSET	0x00200000
+
+#define PM_RSTC	((uint32_t *)(MMIO_BASE + PM_OFFSET + 0x1c))
+#define PM_WDOG	((uint32_t *)(MMIO_BASE + PM_OFFSET + 0x24))
+
+#define PM_PASSWORD	0x5a000000
+#define PM_RSTC_WRCFG_FULL_RESET	0x20
+
 #define GPIO_OFFSET	0x00200000
 
 #define GPFSEL1	((uint32_t *)(MMIO_BASE + GPIO_OFFSET + 0x4))

@@ -1,5 +1,6 @@
 #include "kio.h"
 #include "string.h"
+#include "pm.h"
 
 struct kshell_cmd {
 	const char *cmd;
@@ -16,6 +17,7 @@ static void help();
 static const struct kshell_cmd kshell_cmds[] = {
 	{"hello",	"print Hello World!",	hello},
 	{"help",	"print this help menu",	help},
+	{"reboot",	"reboot the device",	platform_reset},
 	{0},
 };
 
