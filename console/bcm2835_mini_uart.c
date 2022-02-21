@@ -24,7 +24,8 @@ static void bcm2835_mini_uart_putc(uint8_t c) {
 
 static uint8_t bcm2835_mini_uart_getc() {
 	while (!(*AUX_MU_LSR_REG & AUX_MU_LSR_RX_READY));
-	return *AUX_MU_IO_REG;
+	uint8_t c = *AUX_MU_IO_REG;
+	return c == '\r' ? '\n' : c; // should we really do this?
 }
 
 static const struct console bcm2835_mini_uart_con = {
