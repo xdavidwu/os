@@ -27,6 +27,7 @@ void cputc(struct console *con, char c) {
 			cputs_raw(con, CSI "S" CSI "G");
 		} else {
 			con->cline++;
+			con->impl->putc('\r');
 			con->impl->putc('\n');
 		}
 		con->ccolumn = 1;
