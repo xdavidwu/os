@@ -14,8 +14,9 @@ void cinit(struct console *con, const struct console_impl *impl) {
 	con->cline = 1;
 	con->ccolumn = 1;
 	con->impl = impl;
-	cputs_raw(con, CSI "2J"); // clear all
-	cputs_raw(con, CSI "H"); // reset cursor
+	con->input.state = PLAIN;
+	con->output.state = PLAIN;
+	cputs_raw(con, CSI "2J" CSI "H"); // clear all, reset cursor
 }
 
 void cputc(struct console *con, char c) {
@@ -90,7 +91,7 @@ size_t cgets(struct console *con, char *str, size_t sz) {
 		char c = cgetc(con);
 		if (c == '\0') {
 			break;
-		} else if (c == '\x7f') { // DEL
+		} else if (c == '\x7f') { // DEL TODO in control seq?
 			if (i && con->echo) {
 				cputs(con, "\b \b");
 			}
@@ -101,6 +102,36 @@ size_t cgets(struct console *con, char *str, size_t sz) {
 		} else if (c == '\n') {
 			str[i++] = '\n';
 			cputc(con, c);
+			break;
+		}
+		switch (con->input.state) {
+		case PLAIN:
+			if (c == '\x1b') {
+				con->input.state = ESC_START;
+				continue;
+			}
+			break;
+		case ESC_START:
+			switch (c) {
+			case '[':
+				con->input.state = IN_CSI;
+				continue;
+			}
+			// unrecognized escape seq
+			con->input.state = PLAIN;
+			cputs(con, "^["); // output, escaped
+			str[i++] = '^';
+			if (i < sz) {
+				str[i++] = '[';
+			}
+			continue;
+		case IN_CSI: // TODO record / decode
+			if (c >= 0x40 && c <= 0x7e) { // final byte
+				con->input.state = PLAIN;
+				continue;
+			}
+			continue;
+		default:
 			break;
 		}
 		if (con->echo) {
