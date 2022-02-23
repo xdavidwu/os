@@ -39,11 +39,18 @@ void kshell() {
 		if (buf[l - 1] == '\n') {
 			buf[l - 1] = '\0';
 		}
+		bool recognized = false;
 		for (int i = 0; kshell_cmds[i].cmd; i++) {
 			if (!strcmp(buf, kshell_cmds[i].cmd)) {
 				kshell_cmds[i].handler();
+				recognized = true;
 				break;
 			}
+		}
+		if (!recognized) {
+			kputs("Unrecognized command: ");
+			kputs(buf);
+			kputs("\n");
 		}
 	}
 }
