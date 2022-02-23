@@ -5,7 +5,7 @@
 
 #define MMIO_BASE	0x3f000000
 
-#define PM_OFFSET	0x00200000
+#define PM_OFFSET	0x00100000
 
 #define PM_RSTC	((uint32_t *)(MMIO_BASE + PM_OFFSET + 0x1c))
 #define PM_WDOG	((uint32_t *)(MMIO_BASE + PM_OFFSET + 0x24))
