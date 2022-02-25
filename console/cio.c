@@ -16,6 +16,7 @@ void cinit(struct console *con, const struct console_impl *impl) {
 	con->impl = impl;
 	con->input.state = PLAIN;
 	con->output.state = PLAIN;
+	cputs_raw(con, "\r\n"); // hack around missing first bytes
 	cputs_raw(con, CSI "2J" CSI "H"); // clear all, reset cursor
 }
 
