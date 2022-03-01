@@ -5,6 +5,15 @@
 
 #define MMIO_BASE	0x3f000000
 
+#define MAILBOX_OFFSET	0xb880
+
+#define MAILBOX_0_READ	((uint32_t *)(MMIO_BASE + MAILBOX_OFFSET))
+#define MAILBOX_STATUS	((uint32_t *)(MMIO_BASE + MAILBOX_OFFSET + 0x18))
+#define MAILBOX_1_WRITE	((uint32_t *)(MMIO_BASE + MAILBOX_OFFSET + 0x20))
+
+#define MAILBOX_EMPTY   0x40000000
+#define MAILBOX_FULL    0x80000000
+
 #define PM_OFFSET	0x00100000
 
 #define PM_RSTC	((uint32_t *)(MMIO_BASE + PM_OFFSET + 0x1c))
