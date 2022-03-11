@@ -31,13 +31,43 @@ static void ls() {
 	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
 }
 
+static void cat() {
+	kputs("Filename: ");
+	char buf[1024];
+	kgets(buf, 1023);
+	size_t l = strlen(buf);
+	if (buf[l - 1] == '\n') {
+		buf[l - 1] = '\0';
+	}
+	uint8_t *cpio = initrd_start;
+	if (cpio_is_end(cpio)) {
+		return;
+	}
+	uint32_t namesz, filesz;
+	do {
+		struct cpio_newc_header *cpio_header =
+			(struct cpio_newc_header *) cpio;
+		namesz = cpio_get_uint32(cpio_header->c_namesize);
+		filesz = cpio_get_uint32(cpio_header->c_filesize);
+		if (!strcmp(cpio_get_name(cpio), buf)) {
+			cpio = cpio_get_file(cpio, namesz);
+			while (filesz--) {
+				kputc(*cpio);
+				cpio++;
+			}
+			break;
+		}
+	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
+}
+
 static void help();
 
 static const struct kshell_cmd kshell_cmds[] = {
 	{"hello",	"print Hello World!",	hello},
 	{"help",	"print this help menu",	help},
 	{"reboot",	"reboot the device",	platform_reset},
-	{"ls",	"list entries in initrd cpio",	ls},
+	{"ls",	"list entries from initrd cpio",	ls},
+	{"cat",	"print file from initrd cpio",	cat},
 	{0},
 };
 
