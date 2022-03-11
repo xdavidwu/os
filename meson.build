@@ -21,6 +21,7 @@ sources = [
   'console/bcm2835_mini_uart.S',
   'console/cio.c',
   'console/kio.c',
+  'cpio.c',
   'klibc/string.c',
   'init/main.c',
   'init/kshell.c',
