@@ -5,6 +5,7 @@
 
 extern struct console *kconsole;
 
+#define kputc(c)	cputc(kconsole, c)
 #define kputs(str)	cputs(kconsole, str)
 #define kgets(str, sz)	cgets(kconsole, str, sz)
 

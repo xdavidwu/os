@@ -50,6 +50,7 @@ struct console {
 };
 
 void cinit(struct console *con, const struct console_impl *impl);
+void cputc(struct console *con, char c);
 void cputs(struct console *con, const char *str);
 char cgetc(const struct console *con);
 size_t cgets(struct console *con, char *str, size_t sz);
