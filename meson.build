@@ -22,6 +22,7 @@ sources = [
   'console/cio.c',
   'console/kio.c',
   'cpio.c',
+  'fdt.c',
   'klibc/string.c',
   'init/main.c',
   'init/kshell.c',

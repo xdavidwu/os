@@ -30,3 +30,19 @@ size_t strlen(const char *s) {
 	}
 	return res;
 }
+
+char *strcpy(char *restrict dest, const char *src) {
+	char *ptr = dest;
+	while (*src) {
+		*(ptr++) = *(src++);
+	}
+	*ptr = '\0';
+	return dest;
+}
+
+char *strcat(char *restrict dest, const char *restrict src) {
+	char *ptr = dest;
+	ptr += strlen(ptr);
+	strcpy(ptr, src);
+	return dest;
+}

@@ -1,17 +1,20 @@
 _start:
-	mrs x0, mpidr_el1
-	and x0, x0, 3
-	cbz x0, cpu1
+	mrs x1, mpidr_el1
+	and x1, x1, 3
+	cbz x1, cpu1
 loop:
 	wfe
 	b loop
 cpu1:
-	ldr x0, =_start
-	mov sp, x0
-	ldr x0, =__bss_start
-	ldr x1, =__bss_end
+	ldr x1, =_start
+	mov sp, x1
+	ldr x1, =__bss_start
+	ldr x2, =__bss_end
 clear_bss:
-	str xzr, [x0], #8
-	cmp x0, x1
+	str xzr, [x1], #8
+	cmp x1, x2
 	blo clear_bss
+	ldr x1, =fdt
+	str x0, [x1]
 	bl machine_init
+

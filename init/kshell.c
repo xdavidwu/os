@@ -1,4 +1,5 @@
 #include "cpio.h"
+#include "fdt.h"
 #include "init.h"
 #include "kio.h"
 #include "string.h"
@@ -60,6 +61,16 @@ static void cat() {
 	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
 }
 
+static bool print_fdt(uint32_t *token) {
+	kputs(fdt_full_path);
+	kputc('\n');
+	return false;
+}
+
+static void lsdt() {
+	fdt_traverse(print_fdt);
+}
+
 static void help();
 
 static const struct kshell_cmd kshell_cmds[] = {
@@ -68,6 +79,7 @@ static const struct kshell_cmd kshell_cmds[] = {
 	{"reboot",	"reboot the device",	platform_reset},
 	{"ls",	"list entries from initrd cpio",	ls},
 	{"cat",	"print file from initrd cpio",	cat},
+	{"lsdt",	"print device tree entries",	lsdt},
 	{0},
 };
 
