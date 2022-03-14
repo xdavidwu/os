@@ -22,9 +22,18 @@ void fdt_init() {
 static uint32_t *fdt_recur(uint32_t *token, int path_index,
 		bool (*callback)(uint32_t *token)) {
 	uint32_t *head = token++;
-	strcpy(&fdt_full_path[path_index], (char *) token);
-	int len = strlen((char *) token);
-	strcpy(&fdt_full_path[path_index + len], "/");
+	int len = 0;
+	if (!path_index) {
+		strcpy(fdt_full_path, "/");
+		path_index = 1;
+	} else {
+		if (path_index != 1) {
+			fdt_full_path[path_index++] = '/';
+		}
+		strcpy(&fdt_full_path[path_index], (char *) token);
+		len = strlen((char *) token);
+		path_index += len;
+	}
 	token += (len + 1 + 3) / 4;
 	bool handled = callback ? callback(head) : true;
 	while (1) {
@@ -41,7 +50,7 @@ static uint32_t *fdt_recur(uint32_t *token, int path_index,
 			}
 			break;
 		case FDT_BEGIN_NODE:
-			token = fdt_recur(token, path_index + 1 + len,
+			token = fdt_recur(token, path_index,
 				handled ? NULL : callback);
 			break;
 		case FDT_END_NODE:
