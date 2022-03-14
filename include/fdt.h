@@ -44,5 +44,8 @@ struct fdt_prop {
 
 void fdt_init();
 void fdt_traverse(bool (*callback)(uint32_t *token));
+void *fdt_get_prop(uint32_t *token, const char *name, uint32_t *len);
+uint32_t fdt_prop_uint32(void *prop);
+uint64_t fdt_prop_uint64(void *prop);
 
 #endif

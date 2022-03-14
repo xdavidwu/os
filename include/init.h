@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-extern uint8_t *const initrd_start;
+extern uint8_t *initrd_start;
 
 void main();
 
