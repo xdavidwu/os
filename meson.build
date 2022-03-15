@@ -23,6 +23,7 @@ sources = [
   'console/kio.c',
   'cpio.c',
   'fdt.c',
+  'klibc/stdlib.c',
   'klibc/string.c',
   'init/main.c',
   'init/kshell.c',

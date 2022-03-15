@@ -2,6 +2,7 @@
 #include "fdt.h"
 #include "init.h"
 #include "kio.h"
+#include "stdlib.h"
 #include "string.h"
 #include "pm.h"
 #include <stdint.h>
@@ -71,6 +72,21 @@ static void lsdt() {
 	fdt_traverse(print_fdt);
 }
 
+static void tmalloc() {
+	static int c = 0;
+	static char *prev = NULL;
+	c++;
+	char *addr = malloc(15);
+	strcpy(addr, "test malloc 0\n");
+	addr[12] += c % 10;
+	kputs(addr);
+	if (prev) {
+		kputs("prev: ");
+		kputs(prev);
+	}
+	prev = addr;
+}
+
 static void help();
 
 static const struct kshell_cmd kshell_cmds[] = {
@@ -80,6 +96,7 @@ static const struct kshell_cmd kshell_cmds[] = {
 	{"ls",	"list entries from initrd cpio",	ls},
 	{"cat",	"print file from initrd cpio",	cat},
 	{"lsdt",	"print device tree entries",	lsdt},
+	{"tmalloc",	"test malloc",	tmalloc},
 	{0},
 };
 
