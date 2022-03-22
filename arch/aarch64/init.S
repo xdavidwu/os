@@ -6,6 +6,7 @@ loop:
 	wfe
 	b loop
 cpu1:
+	bl el1
 	ldr x1, =_start
 	mov sp, x1
 	ldr x1, =__bss_start
@@ -17,4 +18,10 @@ clear_bss:
 	ldr x1, =fdt
 	str x0, [x1]
 	bl machine_init
-
+el1:
+	mov x0, (1 << 31) // HCR_EL2.RW
+	msr hcr_el2, x0
+	mov x0, 0x3c5 // D A I F EL1h
+	msr spsr_el2, x0
+	msr elr_el2, lr
+	eret
