@@ -42,3 +42,5 @@ custom_target('rpi3-image',
   command: [objcopy, '-O', 'binary', '@INPUT@', '@OUTPUT@'],
   build_by_default: true,
 )
+
+subproject('userspace')
