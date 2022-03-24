@@ -5,10 +5,13 @@
 
 uint8_t *initrd_start = (uint8_t *) 0x8000000;
 
+extern void arm_exceptions();
+
 void machine_init() {
 	struct console kcon;
 	cinit(&kcon, bcm2835_mini_uart_setup());
 	kconsole = &kcon;
 	bcm2835_mbox_print_info();
+	arm_exceptions();
 	main();
 }
