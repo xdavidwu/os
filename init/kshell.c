@@ -7,6 +7,9 @@
 #include "pm.h"
 #include <stdint.h>
 
+static uint8_t *const userspace_start_addr = (uint8_t *) 0x100000;
+extern void exec_user(uint8_t *addr);
+
 struct kshell_cmd {
 	const char *cmd;
 	const char *help;
@@ -62,6 +65,36 @@ static void cat() {
 	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
 }
 
+static void exec() {
+	kputs("Filename: ");
+	char buf[1024];
+	kgets(buf, 1023);
+	size_t l = strlen(buf);
+	if (buf[l - 1] == '\n') {
+		buf[l - 1] = '\0';
+	}
+	uint8_t *cpio = initrd_start;
+	if (cpio_is_end(cpio)) {
+		return;
+	}
+	uint32_t namesz, filesz;
+	do {
+		struct cpio_newc_header *cpio_header =
+			(struct cpio_newc_header *) cpio;
+		namesz = cpio_get_uint32(cpio_header->c_namesize);
+		filesz = cpio_get_uint32(cpio_header->c_filesize);
+		if (!strcmp(cpio_get_name(cpio), buf)) {
+			cpio = cpio_get_file(cpio, namesz);
+			uint8_t *ptr = userspace_start_addr;
+			while (filesz--) {
+				*ptr++ = *cpio++;
+			}
+			exec_user(userspace_start_addr);
+			break;
+		}
+	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
+}
+
 static bool print_fdt(uint32_t *token) {
 	kputs(fdt_full_path);
 	kputc('\n');
@@ -97,6 +130,7 @@ static const struct kshell_cmd kshell_cmds[] = {
 	{"cat",	"print file from initrd cpio",	cat},
 	{"lsdt",	"print device tree entries",	lsdt},
 	{"tmalloc",	"test malloc",	tmalloc},
+	{"exec",	"load from initrd cpio and exec",	exec},
 	{0},
 };
 
