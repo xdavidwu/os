@@ -1,11 +1,11 @@
 #include "kio.h"
 
 static void kput64x(uint64_t val) {
-	char hexbuf[9];
-	hexbuf[8] = '\0';
+	char hexbuf[17];
+	hexbuf[16] = '\0';
 	for (int i = 0; i < 16; i++) {
 		int dig = val & 0xf;
-		hexbuf[7 - i] = (dig > 9 ? 'a' - 10 : '0') + dig;
+		hexbuf[15 - i] = (dig > 9 ? 'a' - 10 : '0') + dig;
 		val >>= 4;
 	}
 	kputs(hexbuf);
