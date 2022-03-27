@@ -29,64 +29,71 @@
 .endm
 
 
-_unimplemented_handler:
-_sync_handler:
+.macro unimplemented_handler
+	msr DAIFSet, 0xf
 	push_state
 	mrs x0, spsr_el1
 	mrs x1, elr_el1
 	mrs x2, esr_el1
+	msr DAIFClr, 0xf
 	bl handle_unimplemented
 	pop_state
 	eret
+.endm
 
-_irq_handler:
+.macro sync_handler
+	unimplemented_handler
+.endm
+
+.macro irq_handler
 	msr DAIFSet, 0xf
 	push_state
 	bl handle_irq
 	pop_state
 	msr DAIFClr, 0xf
 	eret
+.endm
 
 	.align 11 // 0x800
 vtable:
 	# from EL1t
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
 
 	# from EL1h
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _irq_handler
+	irq_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
 
 	# from aarch64 EL0
-	b _sync_handler
+	sync_handler
 	.align 7 // 0x80
-	b _irq_handler
+	irq_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
 
 	# from aarch32 EL0
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
-	b _unimplemented_handler
+	unimplemented_handler
 	.align 7 // 0x80
 
 	.global arm_exceptions
