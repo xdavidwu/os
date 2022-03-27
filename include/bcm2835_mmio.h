@@ -50,6 +50,8 @@
 #define AUXENB_MINIUART	0b1U
 #define AUX_MU_IO_REG	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x40))
 #define AUX_MU_IER_REG	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x44))
+#define AUX_MU_IER_RX_INT	(1 << 0)
+#define AUX_MU_IER_TX_INT	(1 << 1)
 #define AUX_MU_IIR_REG	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x48))
 #define AUX_MU_IIR_RFIFO_CLEAR	(1 << 1)
 #define AUX_MU_IIR_WFIFO_CLEAR	(1 << 2)

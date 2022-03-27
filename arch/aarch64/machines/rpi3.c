@@ -12,10 +12,10 @@ extern void arm_exceptions();
 void machine_init() {
 	arm_timer();
 	struct console kcon;
-	cinit(&kcon, bcm2835_mini_uart_setup());
+	bcm2835_mini_uart_setup(&kcon);
 	kconsole = &kcon;
-	bcm2835_mbox_print_info();
 	arm_exceptions();
 	enable_core0_cntp_irq();
+	bcm2835_mbox_print_info();
 	main();
 }

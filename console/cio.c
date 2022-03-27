@@ -1,21 +1,65 @@
 #include "console.h"
+#include "exceptions.h"
 
-static void cputs_raw(const struct console *con, const char *str) {
+static void cputc_raw(struct console *con, uint8_t c) {
+	DISABLE_INTERRUPTS();
+	if (con->output.buffer.full) {
+		con->impl->putc(con->output.buffer.data[con->output.buffer.head]);
+		con->output.buffer.head++;
+		if (con->output.buffer.head == CONSOLE_BUFFER_SIZE) {
+			con->output.buffer.head = 0;
+		}
+	}
+	con->output.buffer.data[con->output.buffer.tail++] = c;
+	if (con->output.buffer.tail == CONSOLE_BUFFER_SIZE) {
+		con->output.buffer.tail = 0;
+	}
+	if (con->output.buffer.head) {
+		con->output.buffer.full = (con->output.buffer.tail ==
+			con->output.buffer.head - 1);
+	} else {
+		con->output.buffer.full = (con->output.buffer.tail ==
+			CONSOLE_BUFFER_SIZE - 1);
+	}
+	ENABLE_INTERRUPTS();
+	con->impl->set_tx_interrupt(true);
+}
+
+static void cputs_raw(struct console *con, const char *str) {
 	while (*str != '\0') {
-		con->impl->putc(*str);
+		cputc_raw(con, *str);
 		str++;
 	}
 }
 
-void cinit(struct console *con, const struct console_impl *impl) {
+void cflush_nonblock(struct console *con) {
+	while (true) {
+		if (con->output.buffer.head == con->output.buffer.tail) {
+			con->impl->set_tx_interrupt(false);
+			return;
+		}
+		if (con->impl->putc_nonblock(
+				con->output.buffer.data[con->output.buffer.head]) < 0) {
+			return;
+		}
+		con->output.buffer.full = false;
+		con->output.buffer.head++;
+		if (con->output.buffer.head == CONSOLE_BUFFER_SIZE) {
+			con->output.buffer.head = 0;
+		}
+	}
+}
+
+void cinit(struct console *con) {
 	con->echo = true;
 	con->lines = DEFAULT_LINES;
 	con->columns = DEFAULT_COLUMNS;
 	con->cline = 1;
 	con->ccolumn = 1;
-	con->impl = impl;
 	con->input.state = PLAIN;
 	con->output.state = PLAIN;
+	con->input.buffer.head = con->input.buffer.tail = 0;
+	con->output.buffer.head = con->output.buffer.tail = 0;
 	cputs_raw(con, "\r\n"); // hack around missing first bytes
 	cputs_raw(con, CSI "2J" CSI "H"); // clear all, reset cursor
 }
@@ -28,8 +72,7 @@ void cputc(struct console *con, char c) {
 			cputs_raw(con, CSI "S" CSI "G");
 		} else {
 			con->cline++;
-			con->impl->putc('\r');
-			con->impl->putc('\n');
+			cputs_raw(con, "\r\n");
 		}
 		con->ccolumn = 1;
 		break;
@@ -45,7 +88,7 @@ void cputc(struct console *con, char c) {
 			// up, last char, FIXME hardcoded columns
 			cputs_raw(con, CSI "A" CSI "80G");
 		} else {
-			con->impl->putc('\b');
+			cputc_raw(con, '\b');
 		}
 		break;
 	case '\t':
@@ -61,7 +104,7 @@ void cputc(struct console *con, char c) {
 			cputs_raw(con, CSI "80G");
 		} else {
 			// TODO: should we space instead?
-			con->impl->putc('\t');
+			cputc_raw(con, '\t');
 		}
 		break;
 	default:
@@ -69,7 +112,7 @@ void cputc(struct console *con, char c) {
 			cputc(con, '\n');
 		}
 		con->ccolumn++;
-		con->impl->putc(c);
+		cputc_raw(con, c);
 		break;
 	}
 }
