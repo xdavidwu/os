@@ -12,8 +12,11 @@ static void kput64x(uint64_t val) {
 	kputs(hexbuf);
 }
 
-void handle_unimplemented(uint64_t spsr_el1, uint64_t elr_el1, uint64_t esr_el1) {
-	DISABLE_INTERRUPTS();
+void handle_unimplemented() {
+	uint64_t spsr_el1, elr_el1, esr_el1;
+	__asm__ ("mrs %0, spsr_el1" : "=r" (spsr_el1));
+	__asm__ ("mrs %0, esr_el1" : "=r" (elr_el1));
+	__asm__ ("mrs %0, elr_el1" : "=r" (esr_el1));
 	kputs("Unimplemeted exception:\nspsr_el1:\t");
 	kput64x(spsr_el1);
 	kputs("\nelr_el1:\t");
@@ -21,5 +24,4 @@ void handle_unimplemented(uint64_t spsr_el1, uint64_t elr_el1, uint64_t esr_el1)
 	kputs("\nesr_el1:\t");
 	kput64x(esr_el1);
 	kputc('\n');
-	ENABLE_INTERRUPTS();
 }

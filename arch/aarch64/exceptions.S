@@ -31,9 +31,6 @@
 
 .macro unimplemented_handler
 	push_state
-	mrs x0, spsr_el1
-	mrs x1, elr_el1
-	mrs x2, esr_el1
 	bl handle_unimplemented
 	pop_state
 	eret
