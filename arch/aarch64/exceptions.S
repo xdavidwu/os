@@ -30,12 +30,10 @@
 
 
 .macro unimplemented_handler
-	msr DAIFSet, 0xf
 	push_state
 	mrs x0, spsr_el1
 	mrs x1, elr_el1
 	mrs x2, esr_el1
-	msr DAIFClr, 0xf
 	bl handle_unimplemented
 	pop_state
 	eret
@@ -46,11 +44,9 @@
 .endm
 
 .macro irq_handler
-	msr DAIFSet, 0xf
 	push_state
 	bl handle_irq
 	pop_state
-	msr DAIFClr, 0xf
 	eret
 .endm
 
