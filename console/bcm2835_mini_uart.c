@@ -69,6 +69,14 @@ static const struct console_impl bcm2835_mini_uart_con = {
 	.set_rx_interrupt = bcm2835_mini_uart_rx_interrupt,
 };
 
+static void bcm2835_mini_uart_handle_irq(struct console *con) {
+	if (*AUX_IRQ & AUX_IRQ_MINIUART) {
+		if ((*AUX_MU_IIR_REG & AUX_MU_IIR_IID_MASK) == AUX_MU_IIR_IID_TX) {
+			cflush_nonblock(con);
+		}
+	}
+}
+
 void bcm2835_mini_uart_setup(struct console *con) {
 	*AUXENB = AUXENB_MINIUART;
 	*AUX_MU_CNTL_REG = 0;
@@ -85,5 +93,5 @@ void bcm2835_mini_uart_setup(struct console *con) {
 
 	con->impl = &bcm2835_mini_uart_con;
 	cinit(con);
-	bcm2835_armctrl_set_irq_handler(29, (void (*)(void *))cflush_nonblock, con);
+	bcm2835_armctrl_set_irq_handler(29, (void (*)(void *))bcm2835_mini_uart_handle_irq, con);
 }

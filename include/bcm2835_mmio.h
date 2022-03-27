@@ -46,6 +46,8 @@
 #define AUX_OFFSET	0x00215000
 
 // TODO: struct these
+#define AUX_IRQ	((uint32_t *)(MMIO_BASE + AUX_OFFSET))
+#define AUX_IRQ_MINIUART	(1 << 0)
 #define AUXENB	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x4))
 #define AUXENB_MINIUART	0b1U
 #define AUX_MU_IO_REG	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x40))
@@ -55,6 +57,9 @@
 #define AUX_MU_IIR_REG	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x48))
 #define AUX_MU_IIR_RFIFO_CLEAR	(1 << 1)
 #define AUX_MU_IIR_WFIFO_CLEAR	(1 << 2)
+#define AUX_MU_IIR_IID_MASK	0b110
+#define AUX_MU_IIR_IID_TX	0b010
+#define AUX_MU_IIR_IID_RX	0b100
 #define AUX_MU_LCR_REG	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x4c))
 #define AUX_MU_LCR_8BIT	0b11
 #define AUX_MU_MCR_REG	((uint32_t *)(MMIO_BASE + AUX_OFFSET + 0x50))
