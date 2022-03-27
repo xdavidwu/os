@@ -1,4 +1,5 @@
 #include "bcm2836_ic.h"
+#include "bcm2835_ic.h"
 #include "exceptions.h"
 #include "kio.h"
 #include "timer.h"
@@ -21,13 +22,17 @@ static void kpu32x(uint32_t val) {
 void handle_irq() {
 	static uint32_t uptime = 0;
 	uint32_t src = *CORE0_IRQ_SOURCE;
-	switch (src) {
-	default:
+	if ((src & IRQ_SRC_CNTP) == IRQ_SRC_CNTP) {
 		uptime += 2;
 		kputs("Uptime: ");
 		kpu32x(uptime);
 		kputc('\n');
 		rearm_timer();
-		break;
+	} else if ((src & IRQ_SRC_GPU) == IRQ_SRC_GPU) {
+		bcm2835_armctrl_handle_irq();
+	} else {
+		kputs("Unrecognized irq: ");
+		kpu32x(src);
+		kputc('\n');
 	}
 }

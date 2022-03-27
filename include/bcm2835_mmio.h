@@ -5,6 +5,15 @@
 
 #define MMIO_BASE	0x3f000000
 
+#define IC_OFFSET	0xb000
+
+#define IC_IRQ_PENDING_BASIC	((uint32_t *)(MMIO_BASE + IC_OFFSET + 0x200))
+#define IC_IRQ_PENDING_1_SET	(1 << 8)
+#define IC_IRQ_PENDING_2_SET	(1 << 9)
+#define IC_IRQ_PENDING_1	((uint32_t *)(MMIO_BASE + IC_OFFSET + 0x204))
+#define IC_IRQ_PENDING_2	((uint32_t *)(MMIO_BASE + IC_OFFSET + 0x208))
+#define IC_IRQ_ENBALE1	((uint32_t *)(MMIO_BASE + IC_OFFSET + 0x210))
+
 #define MAILBOX_OFFSET	0xb880
 
 #define MAILBOX_0_READ	((uint32_t *)(MMIO_BASE + MAILBOX_OFFSET))

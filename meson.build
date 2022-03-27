@@ -21,6 +21,7 @@ sources = [
   'arch/aarch64/machines/rpi3.c',
   'arch/aarch64/platforms/bcm2835/mailbox.c',
   'arch/aarch64/platforms/bcm2835/pm.c',
+  'arch/aarch64/platforms/bcm2835/ic.c',
   'arch/aarch64/platforms/bcm2836/ic.c',
   'console/bcm2835_mini_uart.c',
   'console/bcm2835_mini_uart.S',

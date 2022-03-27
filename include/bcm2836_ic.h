@@ -14,7 +14,8 @@ enum {
 #define CORE0_IRQ_SOURCE	((uint32_t *) (BCM2836_IC_BASE + 0x60))
 
 enum {
-	IRQ_SRC_CNTP = 0x2,
+	IRQ_SRC_CNTP = 1 << 1,
+	IRQ_SRC_GPU = 1 << 8,
 };
 
 void enable_core0_cntp_irq();
