@@ -1,6 +1,9 @@
 #include "exceptions.h"
 #include "kio.h"
 
+int interrupt_ref = 0;
+int in_exception = 0;
+
 static void kput64x(uint64_t val) {
 	char hexbuf[17];
 	hexbuf[16] = '\0';

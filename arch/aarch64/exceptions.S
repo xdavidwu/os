@@ -10,7 +10,7 @@
 	stp x14, x15, [sp, 16 * 7]
 	stp x16, x17, [sp, 16 * 8]
 	stp x18, x29, [sp, 16 * 9]
-	str x30, [sp, 16 * 10]
+	stp x30, x19, [sp, 16 * 10]
 .endm
 
 .macro pop_state
@@ -24,14 +24,18 @@
 	ldp x14, x15, [sp, 16 * 7]
 	ldp x16, x17, [sp, 16 * 8]
 	ldp x18, x29, [sp, 16 * 9]
-	ldr x30, [sp, 16 * 10]
+	ldp x30, x19, [sp, 16 * 10]
 	add sp, sp, 16 * 11
 .endm
 
 
 .macro unimplemented_handler
 	push_state
+	ldr x19, =in_exception
+	mov w0, 1
+	str w0, [x19]
 	bl handle_unimplemented
+	str wzr, [x19]
 	pop_state
 	eret
 .endm
@@ -42,7 +46,11 @@
 
 .macro irq_handler
 	push_state
+	ldr x19, =in_exception
+	mov w0, 1
+	str w0, [x19]
 	bl handle_irq
+	str wzr, [x19]
 	pop_state
 	eret
 .endm
