@@ -4,6 +4,7 @@
 enum {
 	SUCCESS = 0,
 	EWOULDBLOCK,
+	ENOSPC,
 };
 
 #endif

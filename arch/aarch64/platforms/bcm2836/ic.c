@@ -20,14 +20,9 @@ static void kpu32x(uint32_t val) {
 }
 
 void handle_irq() {
-	static uint32_t uptime = 0;
 	uint32_t src = *CORE0_IRQ_SOURCE;
 	if ((src & IRQ_SRC_CNTP) == IRQ_SRC_CNTP) {
-		uptime += 2;
-		kputs("Uptime: ");
-		kpu32x(uptime);
-		kputc('\n');
-		rearm_timer();
+		handle_timer();
 	} else if ((src & IRQ_SRC_GPU) == IRQ_SRC_GPU) {
 		bcm2835_armctrl_handle_irq();
 	} else {
