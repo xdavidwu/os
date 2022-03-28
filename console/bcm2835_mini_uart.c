@@ -71,8 +71,13 @@ static const struct console_impl bcm2835_mini_uart_con = {
 
 static void bcm2835_mini_uart_handle_irq(struct console *con) {
 	if (*AUX_IRQ & AUX_IRQ_MINIUART) {
-		if ((*AUX_MU_IIR_REG & AUX_MU_IIR_IID_MASK) == AUX_MU_IIR_IID_TX) {
+		switch (*AUX_MU_IIR_REG & AUX_MU_IIR_IID_MASK) {
+		case AUX_MU_IIR_IID_TX:
 			cflush_nonblock(con);
+			break;
+		case AUX_MU_IIR_IID_RX:
+			cconsume_nonblock(con);
+			break;
 		}
 	}
 }
@@ -80,7 +85,7 @@ static void bcm2835_mini_uart_handle_irq(struct console *con) {
 void bcm2835_mini_uart_setup(struct console *con) {
 	*AUXENB = AUXENB_MINIUART;
 	*AUX_MU_CNTL_REG = 0;
-	*AUX_MU_IER_REG = 0;
+	*AUX_MU_IER_REG = AUX_MU_CNTL_RX_ENABLE;
 	*AUX_MU_LCR_REG = AUX_MU_LCR_8BIT;
 	*AUX_MU_MCR_REG = 0;
 	*AUX_MU_BAUD = 270; // 250M / (8 x (AUX_MU_BAUD + 1)), targeting 115200

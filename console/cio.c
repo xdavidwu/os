@@ -124,8 +124,39 @@ void cputs(struct console *con, const char *str) {
 	}
 }
 
-char cgetc(const struct console *con) {
-	char c = con->impl->getc();
+void cconsume_nonblock(struct console *con) {
+	int c;
+	while (!con->input.buffer.full) {
+		if ((c = con->impl->getc_nonblock()) < 0) {
+			return;
+		}
+		con->input.buffer.data[con->input.buffer.tail++] = c;
+		if (con->input.buffer.tail == CONSOLE_BUFFER_SIZE) {
+			con->input.buffer.tail = 0;
+		}
+		if (con->input.buffer.head) {
+			con->input.buffer.full = (con->input.buffer.tail ==
+				con->input.buffer.head - 1);
+		} else {
+			con->input.buffer.full = (con->input.buffer.tail ==
+				CONSOLE_BUFFER_SIZE - 1);
+		}
+	}
+	con->impl->set_rx_interrupt(false);
+}
+
+char cgetc(struct console *con) {
+	char c;
+	while (con->input.buffer.head == con->input.buffer.tail);
+	DISABLE_INTERRUPTS();
+	c = con->input.buffer.data[con->input.buffer.head];
+	con->input.buffer.full = false;
+	con->input.buffer.head++;
+	if (con->input.buffer.head == CONSOLE_BUFFER_SIZE) {
+		con->input.buffer.head = 0;
+	}
+	con->impl->set_rx_interrupt(true);
+	ENABLE_INTERRUPTS();
 	c = c == '\r' ? '\n' : c;
 	return c;
 }

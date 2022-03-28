@@ -63,11 +63,12 @@ struct console {
 	const struct console_impl *impl;
 };
 
+void cconsume_nonblock(struct console *con);
 void cflush_nonblock(struct console *con);
 void cinit(struct console *con);
 void cputc(struct console *con, char c);
 void cputs(struct console *con, const char *str);
-char cgetc(const struct console *con);
+char cgetc(struct console *con);
 size_t cgets(struct console *con, char *str, size_t sz);
 
 #endif
