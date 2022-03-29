@@ -4,6 +4,7 @@
 #include "kio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "timer.h"
 #include "pm.h"
 #include <stdint.h>
 
@@ -120,6 +121,31 @@ static void tmalloc() {
 	prev = addr;
 }
 
+static void kputs_func(char *s) {
+	kputs(s);
+}
+
+static void sleep() {
+	kputs("time: ");
+	char buf[1024];
+	kgets(buf, 1023);
+	int time = 0;
+	char *ptr = buf;
+	while (*ptr && *ptr != '\n') {
+		if (*ptr >= '0' && *ptr <= '9') {
+			time *= 10;
+			time += *ptr - '0';
+		}
+		ptr++;
+	}
+	kputs("string: ");
+	kgets(buf, 1023);
+	int l = strlen(buf);
+	char *p = malloc(l + 1);
+	strcpy(p, buf);
+	register_timer(time, (void (*)(void *))kputs_func, p);
+}
+
 static void help();
 
 static const struct kshell_cmd kshell_cmds[] = {
@@ -131,6 +157,7 @@ static const struct kshell_cmd kshell_cmds[] = {
 	{"lsdt",	"print device tree entries",	lsdt},
 	{"tmalloc",	"test malloc",	tmalloc},
 	{"exec",	"load from initrd cpio and exec",	exec},
+	{"sleep",	"print something after a few seconds",	sleep},
 	{0},
 };
 
