@@ -21,8 +21,8 @@ static void cputc_raw(struct console *con, uint8_t c) {
 		con->output.buffer.full = (con->output.buffer.tail ==
 			CONSOLE_BUFFER_SIZE - 1);
 	}
-	ENABLE_INTERRUPTS();
 	con->impl->set_tx_interrupt(true);
+	ENABLE_INTERRUPTS();
 }
 
 static void cputs_raw(struct console *con, const char *str) {
@@ -33,15 +33,17 @@ static void cputs_raw(struct console *con, const char *str) {
 }
 
 void cflush_nonblock(struct console *con) {
+	DISABLE_INTERRUPTS();
+	con->impl->set_tx_interrupt(false);
 	while (true) {
-		DISABLE_INTERRUPTS();
 		if (con->output.buffer.head == con->output.buffer.tail) {
+			ENABLE_INTERRUPTS();
 			return;
 		}
-		ENABLE_INTERRUPTS();
 		if (con->impl->putc_nonblock(
 				con->output.buffer.data[con->output.buffer.head]) < 0) {
 			con->impl->set_tx_interrupt(true);
+			ENABLE_INTERRUPTS();
 			return;
 		}
 		con->output.buffer.full = false;
