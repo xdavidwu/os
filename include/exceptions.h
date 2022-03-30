@@ -18,7 +18,7 @@ extern int in_exception;
 	if (!in_exception) {\
 		interrupt_ref--;\
 		if (!interrupt_ref) {\
-			__asm__("msr DAIFClr, 0xf");\
+			__asm__("msr DAIFSet, 0xf");\
 		}\
 	}\
 } while (0)
