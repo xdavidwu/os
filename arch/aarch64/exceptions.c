@@ -1,6 +1,7 @@
 #include "bcm2836_ic.h"
 #include "exceptions.h"
 #include "kio.h"
+#include <stdbool.h>
 
 int interrupt_ref = 0;
 int in_exception = 0;
@@ -33,37 +34,98 @@ void handle_unimplemented() {
 }
 
 #define TASKS_MAX 32
+#define NESTED_IRQ_MAX 16
+
 struct tasks {
 	void (*func)(void *);
 	void *data;
 	int prio;
 };
 
-struct tasks *tasks_local_p;
+static struct {
+	struct tasks *tasks;
+	int max_prio;
+	int length;
+	int pending_index;
+} nested_tasks[NESTED_IRQ_MAX];
 
-static int tasks_local_idx;
+static int irq_lvl = -1;
 
 void register_task(void (*func)(void *), void *data, int prio) {
-	tasks_local_p[tasks_local_idx].func = func;
-	tasks_local_p[tasks_local_idx].data = data;
-	tasks_local_p[tasks_local_idx].prio = prio;
-	tasks_local_idx++;
+	nested_tasks[irq_lvl].tasks[nested_tasks[irq_lvl].length].func = func;
+	nested_tasks[irq_lvl].tasks[nested_tasks[irq_lvl].length].data = data;
+	nested_tasks[irq_lvl].tasks[nested_tasks[irq_lvl].length].prio = prio;
+	nested_tasks[irq_lvl].length++;
 }
 
 void handle_irq() {
-	struct tasks tasks_local[TASKS_MAX];
-	tasks_local_p = tasks_local;
+	irq_lvl++;
+	struct tasks tasks_local[TASKS_MAX + 1]; // + 1 for sen
+	nested_tasks[irq_lvl].tasks = tasks_local;
+	nested_tasks[irq_lvl].length = 0;
+	nested_tasks[irq_lvl].pending_index = 0;
 	in_exception = 1;
-	tasks_local_idx = 0;
 	bcm2836_handle_irq();
 
-	int tasks_local_max = tasks_local_idx;
-	in_exception = 0;
-	__asm__ ("msr DAIFClr, 0xf");
-
-	for (int i = 0; i < tasks_local_max; i++) {
-		tasks_local[i].func(tasks_local[i].data);
+	for (int a = 0; a < nested_tasks[irq_lvl].length; a++) {
+		for (int b = a + 1; b < nested_tasks[irq_lvl].length; b++) {
+			if (tasks_local[a].prio > tasks_local[b].prio) {
+				struct tasks tmp = tasks_local[a];
+				tasks_local[a] = tasks_local[b];
+				tasks_local[b] = tmp;
+			}
+		}
 	}
 
-	__asm__ ("msr DAIFSet, 0xf");
+	bool touched[irq_lvl];
+	for (int b = 0; b < irq_lvl; b++) {
+		touched[b] = false;
+	}
+	// inject low prio to lower nested irqs
+	for (int a = nested_tasks[irq_lvl].length; a >= 0; a--) {
+		for (int b = 0; b < irq_lvl; b++) {
+			if (nested_tasks[b].pending_index >= nested_tasks[b].length) {
+				// already empty, ignore
+				continue;
+			}
+			if (nested_tasks[irq_lvl].tasks[a].prio >= nested_tasks[b].max_prio) {
+				nested_tasks[b].tasks[nested_tasks[b].length++] = nested_tasks[irq_lvl].tasks[a];
+				touched[b] = true;
+				// truncate current queue
+				nested_tasks[irq_lvl].length = a;
+				break;
+			}
+		}
+	}
+	// re-sort pending tasks at each level TODO: just do insertion sort?
+	for (int b = 0; b < irq_lvl; b++) {
+		if (!touched[b]) {
+			continue;
+		}
+		for (int a = nested_tasks[b].pending_index; a < nested_tasks[b].length; a++) {
+			for (int c = a + 1; c < nested_tasks[b].length; c++) {
+				if (nested_tasks[b].tasks[a].prio > nested_tasks[b].tasks[c].prio) {
+					struct tasks tmp = nested_tasks[b].tasks[a];
+					nested_tasks[b].tasks[a] = nested_tasks[b].tasks[c];
+					nested_tasks[b].tasks[c] = tmp;
+				}
+			}
+		}
+	}
+	nested_tasks[irq_lvl].max_prio = tasks_local[0].prio;
+
+	in_exception = 0;
+	while (true) {
+		if (nested_tasks[irq_lvl].pending_index >= nested_tasks[irq_lvl].length) {
+			break;
+		}
+		int taken = nested_tasks[irq_lvl].pending_index++;
+		nested_tasks[irq_lvl].max_prio = nested_tasks[irq_lvl].tasks[taken + 1].prio;
+		__asm__ ("msr DAIFClr, 0xf\nisb");
+		nested_tasks[irq_lvl].tasks[taken].func(
+			nested_tasks[irq_lvl].tasks[taken].data);
+		__asm__ ("msr DAIFSet, 0xf\nisb");
+	}
+
+	irq_lvl--;
 }
