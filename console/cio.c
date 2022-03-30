@@ -34,12 +34,14 @@ static void cputs_raw(struct console *con, const char *str) {
 
 void cflush_nonblock(struct console *con) {
 	while (true) {
+		DISABLE_INTERRUPTS();
 		if (con->output.buffer.head == con->output.buffer.tail) {
-			con->impl->set_tx_interrupt(false);
 			return;
 		}
+		ENABLE_INTERRUPTS();
 		if (con->impl->putc_nonblock(
 				con->output.buffer.data[con->output.buffer.head]) < 0) {
+			con->impl->set_tx_interrupt(true);
 			return;
 		}
 		con->output.buffer.full = false;
@@ -128,8 +130,10 @@ void cconsume_nonblock(struct console *con) {
 	int c;
 	while (!con->input.buffer.full) {
 		if ((c = con->impl->getc_nonblock()) < 0) {
+			con->impl->set_rx_interrupt(true);
 			return;
 		}
+		DISABLE_INTERRUPTS();
 		con->input.buffer.data[con->input.buffer.tail++] = c;
 		if (con->input.buffer.tail == CONSOLE_BUFFER_SIZE) {
 			con->input.buffer.tail = 0;
@@ -141,8 +145,8 @@ void cconsume_nonblock(struct console *con) {
 			con->input.buffer.full = (con->input.buffer.tail ==
 				CONSOLE_BUFFER_SIZE - 1);
 		}
+		ENABLE_INTERRUPTS();
 	}
-	con->impl->set_rx_interrupt(false);
 }
 
 char cgetc(struct console *con) {

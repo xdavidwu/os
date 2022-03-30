@@ -50,7 +50,7 @@ void handle_timer() {
 		if (timers[a].cval) {
 			if (timers[a].cval <= t) {
 				timers[a].cval = 0;
-				timers[a].func(timers[a].data);
+				register_task(timers[a].func, timers[a].data, 0);
 			} else if (next_cval > timers[a].cval) {
 				next_cval = timers[a].cval;
 			}

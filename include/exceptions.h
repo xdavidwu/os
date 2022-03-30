@@ -23,4 +23,9 @@ extern int in_exception;
 	}\
 } while (0)
 
+#define PRIO_MAX	-20
+#define PRIO_MIN	19
+
+void register_task(void (*func)(void *), void *data, int prio);
+
 #endif

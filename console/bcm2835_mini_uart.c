@@ -3,6 +3,7 @@
 #include "bcm2835_ic.h"
 #include "console.h"
 #include "errno.h"
+#include "exceptions.h"
 
 extern void __gppud_delay();
 
@@ -73,10 +74,12 @@ static void bcm2835_mini_uart_handle_irq(struct console *con) {
 	if (*AUX_IRQ & AUX_IRQ_MINIUART) {
 		switch (*AUX_MU_IIR_REG & AUX_MU_IIR_IID_MASK) {
 		case AUX_MU_IIR_IID_TX:
-			cflush_nonblock(con);
+			con->impl->set_tx_interrupt(false);
+			register_task((void (*)(void *))cflush_nonblock, con, 0);
 			break;
 		case AUX_MU_IIR_IID_RX:
-			cconsume_nonblock(con);
+			con->impl->set_rx_interrupt(false);
+			register_task((void (*)(void *))cconsume_nonblock, con, 0);
 			break;
 		}
 	}

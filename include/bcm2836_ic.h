@@ -20,4 +20,6 @@ enum {
 
 void enable_core0_cntp_irq();
 
+void bcm2836_handle_irq();
+
 #endif

@@ -9,11 +9,16 @@
 	stp x12, x13, [sp, 16 * 6]
 	stp x14, x15, [sp, 16 * 7]
 	stp x16, x17, [sp, 16 * 8]
-	stp x18, x29, [sp, 16 * 9]
-	stp x30, x19, [sp, 16 * 10]
+	stp x18, x30, [sp, 16 * 9]
+	mrs x0, spsr_el1
+	mrs x1, elr_el1
+	stp x0, x1, [sp, 16 * 10]
 .endm
 
 .macro pop_state
+	ldp x0, x1, [sp, 16 * 10]
+	msr spsr_el1, x0
+	msr elr_el1, x1
 	ldp x0, x1, [sp, 16 * 0]
 	ldp x2, x3, [sp, 16 * 1]
 	ldp x4, x5, [sp, 16 * 2]
@@ -23,19 +28,14 @@
 	ldp x12, x13, [sp, 16 * 6]
 	ldp x14, x15, [sp, 16 * 7]
 	ldp x16, x17, [sp, 16 * 8]
-	ldp x18, x29, [sp, 16 * 9]
-	ldp x30, x19, [sp, 16 * 10]
+	ldp x18, x30, [sp, 16 * 9]
 	add sp, sp, 16 * 11
 .endm
 
 
 .macro unimplemented_handler
 	push_state
-	ldr x19, =in_exception
-	mov w0, 1
-	str w0, [x19]
 	bl handle_unimplemented
-	str wzr, [x19]
 	pop_state
 	eret
 .endm
@@ -46,11 +46,7 @@
 
 .macro irq_handler
 	push_state
-	ldr x19, =in_exception
-	mov w0, 1
-	str w0, [x19]
 	bl handle_irq
-	str wzr, [x19]
 	pop_state
 	eret
 .endm

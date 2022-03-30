@@ -19,7 +19,7 @@ static void kpu32x(uint32_t val) {
 	kputs(hexbuf);
 }
 
-void handle_irq() {
+void bcm2836_handle_irq() {
 	uint32_t src = *CORE0_IRQ_SOURCE;
 	if ((src & IRQ_SRC_CNTP) == IRQ_SRC_CNTP) {
 		handle_timer();
