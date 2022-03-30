@@ -143,7 +143,29 @@ static void sleep() {
 	int l = strlen(buf);
 	char *p = malloc(l + 1);
 	strcpy(p, buf);
-	register_timer(time, (void (*)(void *))kputs_func, p);
+	register_timer(time, (void (*)(void *))kputs_func, p, 0);
+}
+
+extern void __gppud_delay();
+
+static void prio_task() {
+	const char *msg1 = "first\r\n";
+	while (*msg1) kconsole->impl->putc(*msg1++);
+	kputs("second\n");
+	int c = 10000;
+	while (c--) {
+		__gppud_delay();
+	}
+	const char *msg3 = "third\r\n";
+	while (*msg3) kconsole->impl->putc(*msg3++);
+}
+
+static void prio() {
+	kputs("A timer has been armed, it will print message in both sync and async.\n"
+		"It should be in order first (sync), second (async), third (sync).\n"
+		"The timer sync prints in its own low prio task, in first irq,\n"
+		"async prints are run by high prio console irq task, in nested irq.\n");
+	register_timer(1, prio_task, NULL, 19);
 }
 
 static void help();
@@ -158,6 +180,7 @@ static const struct kshell_cmd kshell_cmds[] = {
 	{"tmalloc",	"test malloc",	tmalloc},
 	{"exec",	"load from initrd cpio and exec",	exec},
 	{"sleep",	"print something after a few seconds",	sleep},
+	{"prio",	"task priority test",	prio},
 	{0},
 };
 

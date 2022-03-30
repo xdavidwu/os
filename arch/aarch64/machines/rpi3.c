@@ -22,7 +22,7 @@ static void kpu32x(uint32_t val) {
 
 static void timer_act() {
 	static unsigned int uptime = 0;
-	register_timer(2, timer_act, NULL);
+	register_timer(2, timer_act, NULL, -20);
 	uptime += 2;
 	kputs("Uptime: ");
 	kpu32x(uptime);
@@ -30,7 +30,7 @@ static void timer_act() {
 }
 
 void machine_init() {
-	register_timer(2, timer_act, NULL);
+	register_timer(2, timer_act, NULL, -20);
 	struct console kcon;
 	bcm2835_mini_uart_setup(&kcon);
 	kconsole = &kcon;

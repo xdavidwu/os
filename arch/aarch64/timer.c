@@ -9,11 +9,12 @@ struct {
 	uint64_t cval;
 	void (*func)(void *);
 	void *data;
+	int prio;
 } timers[TIMERS_MAX];
 
 static uint64_t next_cval = UINT64_MAX;
 
-int register_timer(int delay, void (*func)(void *), void *data) {
+int register_timer(int delay, void (*func)(void *), void *data, int prio) {
 	bool ok = false;
 	uint64_t freq, t, cval;
 	asm("mrs %0, cntfrq_el0" : "=r" (freq));
@@ -32,6 +33,7 @@ int register_timer(int delay, void (*func)(void *), void *data) {
 			timers[a].cval = cval;
 			timers[a].func = func;
 			timers[a].data = data;
+			timers[a].prio = prio;
 			break;
 		}
 	}
@@ -50,7 +52,7 @@ void handle_timer() {
 		if (timers[a].cval) {
 			if (timers[a].cval <= t) {
 				timers[a].cval = 0;
-				register_task(timers[a].func, timers[a].data, 0);
+				register_task(timers[a].func, timers[a].data, timers[a].prio);
 			} else if (next_cval > timers[a].cval) {
 				next_cval = timers[a].cval;
 			}
