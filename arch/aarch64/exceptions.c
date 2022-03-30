@@ -121,7 +121,7 @@ void handle_irq() {
 		}
 		int taken = nested_tasks[irq_lvl].pending_index++;
 		nested_tasks[irq_lvl].max_prio = nested_tasks[irq_lvl].tasks[taken + 1].prio;
-		__asm__ ("msr DAIFClr, 0xf\nisb");
+		__asm__ ("msr DAIFClr, 0xf");
 		nested_tasks[irq_lvl].tasks[taken].func(
 			nested_tasks[irq_lvl].tasks[taken].data);
 		__asm__ ("msr DAIFSet, 0xf\nisb");
