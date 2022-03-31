@@ -31,10 +31,10 @@ static void timer_act() {
 
 void machine_init() {
 	register_timer(2, timer_act, NULL, -20);
+	arm_exceptions();
 	struct console kcon;
 	bcm2835_mini_uart_setup(&kcon);
 	kconsole = &kcon;
-	arm_exceptions();
 	enable_core0_cntp_irq();
 	bcm2835_mbox_print_info();
 	main();

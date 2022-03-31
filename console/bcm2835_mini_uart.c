@@ -100,6 +100,6 @@ void bcm2835_mini_uart_setup(struct console *con) {
 	*AUX_MU_CNTL_REG = AUX_MU_CNTL_RX_ENABLE | AUX_MU_CNTL_TX_ENABLE;
 
 	con->impl = &bcm2835_mini_uart_con;
-	cinit(con);
 	bcm2835_armctrl_set_irq_handler(29, (void (*)(void *))bcm2835_mini_uart_handle_irq, con);
+	cinit(con);
 }
