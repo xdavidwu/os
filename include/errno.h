@@ -5,6 +5,7 @@ enum {
 	SUCCESS = 0,
 	EWOULDBLOCK,
 	ENOSPC,
+	ENOMEM,
 };
 
 #endif

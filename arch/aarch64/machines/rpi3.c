@@ -3,6 +3,7 @@
 #include "bcm2835_mini_uart.h"
 #include "bcm2835_mailbox.h"
 #include "bcm2836_ic.h"
+#include "page.h"
 #include "timer.h"
 
 uint8_t *initrd_start = (uint8_t *) 0x8000000;
@@ -37,5 +38,7 @@ void machine_init() {
 	kconsole = &kcon;
 	enable_core0_cntp_irq();
 	bcm2835_mbox_print_info();
+	page_alloc_init();
+	page_free(page_alloc(4));
 	main();
 }

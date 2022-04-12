@@ -29,6 +29,7 @@ sources = [
   'console/kio.c',
   'cpio.c',
   'fdt.c',
+  'mem/page.c',
   'klibc/stdlib.c',
   'klibc/string.c',
   'init/main.c',
