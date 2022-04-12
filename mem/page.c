@@ -94,7 +94,7 @@ void page_free(void *page) {
 	kputs(" ord: ");
 	kput16x(ord);
 	kputs("\n");
-	for (ord += 1; ord <= MAX_ORD; ord++) {
+	while (ord <= MAX_ORD) {
 		int bud = idx ^ (1 << ord);
 		if (!page_buddies[bud].ent) {
 			break;
@@ -110,8 +110,8 @@ void page_free(void *page) {
 		kputs(" ord: ");
 		kput16x(ord);
 		kputs("\n");
+		ord++;
 	}
-	ord -= 1;
 	struct list_entry *ptrb = free_lists[ord].next;
 	free_lists[ord].next = malloc(sizeof(struct list_entry));
 	free_lists[ord].next->idx = idx;
