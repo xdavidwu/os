@@ -39,6 +39,8 @@ void machine_init() {
 	enable_core0_cntp_irq();
 	bcm2835_mbox_print_info();
 	page_alloc_init();
-	page_free(page_alloc(4));
+	void *p1 = page_alloc(4);
+	page_free(page_alloc(3));
+	page_free(p1);
 	main();
 }
