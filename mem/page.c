@@ -15,7 +15,7 @@ static struct page_buddy {
 	struct page_buddy *next, *prev;
 } page_buddies[PAGE_BUDDIES_SZ];
 
-#define MAX_ORD	16
+#define MAX_ORD	14
 static struct page_buddy free_lists[MAX_ORD + 1];
 
 void *prepage_malloc(size_t size);
@@ -114,7 +114,7 @@ void page_free(void *page) {
 	kputs(" ord: ");
 	kput16x(ord);
 	kputs("\n");
-	while (ord <= MAX_ORD) {
+	while (ord < MAX_ORD) {
 		int bud = idx ^ (1 << ord);
 		if (!page_buddies[bud].prev) {
 			break;
@@ -151,16 +151,27 @@ void page_free(void *page) {
 
 void page_alloc_init() {
 	DISABLE_INTERRUPTS();
-	for (int a = 0; a < MAX_ORD; a++) {
+	for (int a = 0; a <= MAX_ORD; a++) {
 		free_lists[a].next = NULL;
 		free_lists[a].prev = NULL;
 	}
-	free_lists[MAX_ORD].next = &page_buddies[0];
-	free_lists[MAX_ORD].next->next = NULL;
-	free_lists[MAX_ORD].next->prev = &free_lists[MAX_ORD];
-	for (int a = 1; a < PAGE_BUDDIES_SZ; a++) {
+	for (int a = 0; a < PAGE_BUDDIES_SZ; a++) {
 		page_buddies[a].status = BUDDY_IS_BUDDY;
 	}
-	page_buddies[0].status = MAX_ORD;
+	int current_index = 0, step = MAX_ORD;
+	while (current_index < PAGE_BUDDIES_SZ) {
+		while ((PAGE_BUDDIES_SZ - current_index) < (1 << step)) {
+			step--;
+		}
+		struct page_buddy *ptrb = free_lists[step].next;
+		free_lists[step].next = &page_buddies[current_index];
+		if (ptrb) {
+			ptrb->prev = free_lists[step].next;
+		}
+		free_lists[step].next->next = ptrb;
+		free_lists[step].next->prev = &free_lists[step];
+		page_buddies[current_index].status = step;
+		current_index += (1 << step);
+	}
 	ENABLE_INTERRUPTS();
 }
