@@ -38,6 +38,8 @@ void machine_init() {
 	kconsole = &kcon;
 	enable_core0_cntp_irq();
 	bcm2835_mbox_print_info();
+	page_alloc_preinit();
+	mem_reserve((void *)0x1d000000, (void *)0x1f000000);
 	page_alloc_init();
 	void *p1 = page_alloc(4);
 	page_free(page_alloc(3));

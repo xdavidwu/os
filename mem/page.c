@@ -12,6 +12,7 @@ static void *const page_base = (void *)0x10000000;
 
 static struct page_buddy {
 	uint8_t status;
+	bool reserved;
 	struct page_buddy *next, *prev;
 } page_buddies[PAGE_BUDDIES_SZ];
 
@@ -149,29 +150,49 @@ void page_free(void *page) {
 	ENABLE_INTERRUPTS();
 }
 
+void page_alloc_preinit() {
+	for (int a = 0; a < PAGE_BUDDIES_SZ; a++) {
+		page_buddies[a].status = BUDDY_IS_BUDDY;
+	}
+}
+
 void page_alloc_init() {
 	DISABLE_INTERRUPTS();
 	for (int a = 0; a <= MAX_ORD; a++) {
 		free_lists[a].next = NULL;
 		free_lists[a].prev = NULL;
 	}
-	for (int a = 0; a < PAGE_BUDDIES_SZ; a++) {
-		page_buddies[a].status = BUDDY_IS_BUDDY;
-	}
-	int current_index = 0, step = MAX_ORD;
-	while (current_index < PAGE_BUDDIES_SZ) {
-		while ((PAGE_BUDDIES_SZ - current_index) < (1 << step)) {
-			step--;
+	int current_index = 0, step = MAX_ORD, section_end = current_index;
+	while (section_end != PAGE_BUDDIES_SZ) {
+		while (!page_buddies[section_end].reserved && section_end < PAGE_BUDDIES_SZ) {
+			section_end++;
 		}
-		struct page_buddy *ptrb = free_lists[step].next;
-		free_lists[step].next = &page_buddies[current_index];
-		if (ptrb) {
-			ptrb->prev = free_lists[step].next;
+		while (current_index < section_end) {
+			while ((section_end - current_index) < (1 << step)) {
+				step--;
+			}
+			struct page_buddy *ptrb = free_lists[step].next;
+			free_lists[step].next = &page_buddies[current_index];
+			if (ptrb) {
+				ptrb->prev = free_lists[step].next;
+			}
+			free_lists[step].next->next = ptrb;
+			free_lists[step].next->prev = &free_lists[step];
+			page_buddies[current_index].status = step;
+			current_index += (1 << step);
 		}
-		free_lists[step].next->next = ptrb;
-		free_lists[step].next->prev = &free_lists[step];
-		page_buddies[current_index].status = step;
-		current_index += (1 << step);
+		while (page_buddies[current_index].reserved && current_index < PAGE_BUDDIES_SZ) {
+			current_index++;
+		}
+		section_end = current_index;
 	}
 	ENABLE_INTERRUPTS();
+}
+
+void mem_reserve(void *start, void *end) {
+	int end_idx = ((end - 1) - page_base) / PAGE_UNIT;
+	int start_idx = (start - page_base) / PAGE_UNIT;
+	for (int a = start_idx; a <= end_idx; a++) {
+		page_buddies[a].reserved = true;
+	}
 }
