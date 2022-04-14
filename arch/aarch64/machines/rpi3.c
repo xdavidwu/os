@@ -31,7 +31,7 @@ static void timer_act() {
 }
 
 void machine_init() {
-	register_timer(2, timer_act, NULL, -20);
+	//register_timer(2, timer_act, NULL, -20);
 	arm_exceptions();
 	struct console kcon;
 	bcm2835_mini_uart_setup(&kcon);
@@ -42,5 +42,6 @@ void machine_init() {
 	void *p1 = page_alloc(4);
 	page_free(page_alloc(3));
 	page_free(p1);
+	malloc_init();
 	main();
 }

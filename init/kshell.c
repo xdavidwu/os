@@ -117,12 +117,14 @@ static void tmalloc() {
 	if (prev) {
 		kputs("prev: ");
 		kputs(prev);
+		free(prev);
 	}
 	prev = addr;
 }
 
 static void kputs_func(char *s) {
 	kputs(s);
+	free(s);
 }
 
 static void sleep() {

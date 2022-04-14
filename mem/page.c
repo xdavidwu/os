@@ -7,8 +7,6 @@
 
 static void *const page_base = (void *)0x10000000;
 
-#define PAGE_UNIT	(4 * 1024)
-
 struct list_entry {
 	int idx;
 	struct list_entry *next, *prev;
@@ -23,7 +21,9 @@ static struct {
 } page_buddies[PAGE_BUDDIES_SZ];
 
 #define MAX_ORD	16
-static struct list_entry free_lists[MAX_ORD + 1] = {0};
+static struct list_entry free_lists[MAX_ORD + 1];
+
+void *prepage_malloc(size_t size);
 
 static void kput64x(uint64_t val) {
 	char hexbuf[17];
@@ -47,13 +47,36 @@ static void kput16x(uint16_t val) {
 	kputs(hexbuf);
 }
 
+void print_status() {
+	for (int a = 0; a <= MAX_ORD; a++) {
+		kputs("ord: ");
+		kput16x(a);
+		if (free_lists[a].next) {
+			int c = 1;
+			struct list_entry *ptr = free_lists[a].next;
+			kput16x(ptr->idx);
+			while (ptr->next) {
+				ptr = ptr->next;
+				c++;
+			}
+			kputs(" avail ");
+			kput16x(c);
+			kputs("\n");
+		} else {
+			kputs(" noavail\n");
+		}
+	}
+}
 void *page_alloc(int ord) {
 	for (int a = ord; a <= MAX_ORD; a++) {
 		if (free_lists[a].next) {
 			DISABLE_INTERRUPTS();
-			struct list_entry *taken = free_lists[a].next;
-			int take = taken->idx;
+			struct list_entry *const taken = free_lists[a].next;
+			const int take = taken->idx;
 			free_lists[a].next = taken->next;
+			if (taken->next) {
+				taken->next->prev = &free_lists[a];
+			}
 			kputs("take page: ");
 			kput16x(take);
 			kputs(" ord: ");
@@ -61,10 +84,12 @@ void *page_alloc(int ord) {
 			kputs("\n");
 			while (a > ord) {
 				a--;
-				struct list_entry *ptrb = free_lists[a].next;
-				free_lists[a].next = malloc(sizeof(struct list_entry));
+				struct list_entry *const ptrb = free_lists[a].next;
+				free_lists[a].next = prepage_malloc(sizeof(struct list_entry));
 				free_lists[a].next->idx = take + (1 << a);
-				ptrb->prev = free_lists[a].next;
+				if (ptrb) {
+					ptrb->prev = free_lists[a].next;
+				}
 				free_lists[a].next->next = ptrb;
 				free_lists[a].next->prev = &free_lists[a];
 				page_buddies[free_lists[a].next->idx].status = a;
@@ -99,7 +124,9 @@ void page_free(void *page) {
 		if (!page_buddies[bud].ent) {
 			break;
 		}
-		page_buddies[bud].ent->next->prev = page_buddies[bud].ent->prev;
+		if (page_buddies[bud].ent->next) {
+			page_buddies[bud].ent->next->prev = page_buddies[bud].ent->prev;
+		}
 		page_buddies[bud].ent->prev->next = page_buddies[bud].ent->next;
 		//TODO free
 		page_buddies[bud].ent = NULL;
@@ -113,18 +140,30 @@ void page_free(void *page) {
 		ord++;
 	}
 	struct list_entry *ptrb = free_lists[ord].next;
-	free_lists[ord].next = malloc(sizeof(struct list_entry));
+	free_lists[ord].next = prepage_malloc(sizeof(struct list_entry));
 	free_lists[ord].next->idx = idx;
-	ptrb->prev = free_lists[ord].next;
+	if (ptrb) {
+		ptrb->prev = free_lists[ord].next;
+	}
 	free_lists[ord].next->next = ptrb;
 	free_lists[ord].next->prev = &free_lists[ord];
 	page_buddies[idx].status = ord;
 	page_buddies[idx].ent = free_lists[ord].next;
+	kputs(" create: ");
+	kput16x(idx);
+	kputs(" ord: ");
+	kput16x(ord);
+	kputs("\n");
 	ENABLE_INTERRUPTS();
 }
 
 void page_alloc_init() {
-	free_lists[MAX_ORD].next = malloc(sizeof(struct list_entry));
+	DISABLE_INTERRUPTS();
+	for (int a = 0; a < MAX_ORD; a++) {
+		free_lists[a].next = NULL;
+		free_lists[a].prev = NULL;
+	}
+	free_lists[MAX_ORD].next = prepage_malloc(sizeof(struct list_entry));
 	free_lists[MAX_ORD].next->idx = 0;
 	free_lists[MAX_ORD].next->next = NULL;
 	free_lists[MAX_ORD].next->prev = &free_lists[MAX_ORD];
@@ -133,4 +172,5 @@ void page_alloc_init() {
 	}
 	page_buddies[0].status = MAX_ORD;
 	page_buddies[0].ent = free_lists[MAX_ORD].next;
+	ENABLE_INTERRUPTS();
 }
