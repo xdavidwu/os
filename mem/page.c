@@ -5,28 +5,33 @@
 #include "stdlib.h"
 #include <stdint.h>
 
-static void *const page_base = (void *)0x10000000;
+static void *page_base;
 
-#define PAGE_BUDDIES_SZ	(0x10000000 / PAGE_UNIT)
+//#define PAGE_BUDDIES_SZ	(0x10000000 / PAGE_UNIT)
 #define BUDDY_IS_BUDDY	0x7f
 
 static struct page_buddy {
 	uint8_t status;
 	bool reserved;
 	struct page_buddy *next, *prev;
-} page_buddies[PAGE_BUDDIES_SZ];
+} *page_buddies;
+
+static int page_buddies_sz;
 
 #define MAX_ORD	14
+
 static struct page_buddy free_lists[MAX_ORD + 1];
 
 void *prepage_malloc(size_t size);
 
-static void kput64x(uint64_t val) {
-	char hexbuf[17];
-	hexbuf[16] = '\0';
-	for (int i = 0; i < 16; i++) {
+extern void *prepage_heap;
+
+static void kput32x(uint32_t val) {
+	char hexbuf[9];
+	hexbuf[8] = '\0';
+	for (int i = 0; i < 8; i++) {
 		int dig = val & 0xf;
-		hexbuf[15 - i] = (dig > 9 ? 'a' - 10 : '0') + dig;
+		hexbuf[7 - i] = (dig > 9 ? 'a' - 10 : '0') + dig;
 		val >>= 4;
 	}
 	kputs(hexbuf);
@@ -76,7 +81,7 @@ void *page_alloc(int ord) {
 			page_buddies[take].status = ord;
 			page_buddies[take].prev = NULL;
 			kputs("take page: ");
-			kput16x(take);
+			kput32x(take);
 			kputs(" ord: ");
 			kput16x(a);
 			kputs("\n");
@@ -92,7 +97,7 @@ void *page_alloc(int ord) {
 				free_lists[a].next->prev = &free_lists[a];
 				page_buddies[idx].status = a;
 				kputs(" release page: ");
-				kput16x(idx);
+				kput32x(idx);
 				kputs(" ord: ");
 				kput16x(a);
 				kputs("\n");
@@ -111,13 +116,13 @@ void page_free(void *page) {
 	page_buddies[idx].status = BUDDY_IS_BUDDY;
 	page_buddies[idx].prev = NULL;
 	kputs("free page: ");
-	kput16x(idx);
+	kput32x(idx);
 	kputs(" ord: ");
 	kput16x(ord);
 	kputs("\n");
 	while (ord < MAX_ORD) {
 		int bud = idx ^ (1 << ord);
-		if (!page_buddies[bud].prev) {
+		if (!page_buddies[bud].prev || page_buddies[bud].reserved || page_buddies[bud].status != ord) {
 			break;
 		}
 		if (page_buddies[bud].next) {
@@ -128,7 +133,7 @@ void page_free(void *page) {
 		page_buddies[bud].prev = NULL;
 		idx = bud < idx ? bud : idx;
 		kputs(" merge page: ");
-		kput16x(bud);
+		kput32x(bud);
 		kputs(" ord: ");
 		kput16x(ord);
 		kputs("\n");
@@ -143,15 +148,18 @@ void page_free(void *page) {
 	free_lists[ord].next->prev = &free_lists[ord];
 	page_buddies[idx].status = ord;
 	kputs(" create: ");
-	kput16x(idx);
+	kput32x(idx);
 	kputs(" ord: ");
 	kput16x(ord);
 	kputs("\n");
 	ENABLE_INTERRUPTS();
 }
 
-void page_alloc_preinit() {
-	for (int a = 0; a < PAGE_BUDDIES_SZ; a++) {
+void page_alloc_preinit(void *end) {
+	page_base = (void *)((uint64_t)(prepage_heap + (24 * 1024 * 1024) + PAGE_UNIT - 1) / PAGE_UNIT * PAGE_UNIT);
+	page_buddies_sz = (end - page_base) / PAGE_UNIT;
+	page_buddies = prepage_malloc(page_buddies_sz * sizeof(struct page_buddy));
+	for (int a = 0; a < page_buddies_sz; a++) {
 		page_buddies[a].status = BUDDY_IS_BUDDY;
 	}
 }
@@ -162,12 +170,21 @@ void page_alloc_init() {
 		free_lists[a].next = NULL;
 		free_lists[a].prev = NULL;
 	}
-	int current_index = 0, step = MAX_ORD, section_end = current_index;
-	while (section_end != PAGE_BUDDIES_SZ) {
-		while (!page_buddies[section_end].reserved && section_end < PAGE_BUDDIES_SZ) {
+	int current_index = 0, step = 0, section_end = current_index;
+	while (section_end != page_buddies_sz) {
+		while (!page_buddies[section_end].reserved && section_end < page_buddies_sz) {
 			section_end++;
 		}
 		while (current_index < section_end) {
+			step = 0;
+			while (true) { // grow to max index align. allowed
+				int mask = (1 << step) - 1;
+				if ((current_index & mask)|| step > MAX_ORD) {
+					step--;
+					break;
+				}
+				step++;
+			}
 			while ((section_end - current_index) < (1 << step)) {
 				step--;
 			}
@@ -181,7 +198,7 @@ void page_alloc_init() {
 			page_buddies[current_index].status = step;
 			current_index += (1 << step);
 		}
-		while (page_buddies[current_index].reserved && current_index < PAGE_BUDDIES_SZ) {
+		while (page_buddies[current_index].reserved && current_index < page_buddies_sz) {
 			current_index++;
 		}
 		section_end = current_index;
@@ -192,6 +209,11 @@ void page_alloc_init() {
 void mem_reserve(void *start, void *end) {
 	int end_idx = ((end - 1) - page_base) / PAGE_UNIT;
 	int start_idx = (start - page_base) / PAGE_UNIT;
+	kputs("reserve: ");
+	kput32x(start_idx);
+	kputs(" ");
+	kput32x(end_idx);
+	kputs("\n");
 	for (int a = start_idx; a <= end_idx; a++) {
 		page_buddies[a].reserved = true;
 	}

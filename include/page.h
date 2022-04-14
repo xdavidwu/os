@@ -3,7 +3,7 @@
 
 #define PAGE_UNIT	(4 * 1024)
 
-void page_alloc_preinit();
+void page_alloc_preinit(void *end);
 void mem_reserve(void *start, void *end);
 void page_alloc_init();
 void *page_alloc(int ord);

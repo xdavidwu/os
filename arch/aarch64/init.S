@@ -17,6 +17,9 @@ clear_bss:
 	blo clear_bss
 	ldr x1, =fdt
 	str x0, [x1]
+	ldr x1, =__prepage_heap
+	ldr x2, =prepage_heap
+	str x1, [x2]
 	bl machine_init
 el1:
 	mov x1, (1 << 31) // HCR_EL2.RW

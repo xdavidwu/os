@@ -2,12 +2,12 @@
 
 #include <stdint.h>
 
-static uint8_t *heap = (uint8_t *)0x10000;
+void *prepage_heap;
 static int align = 128 / 8;
 
 void *prepage_malloc(size_t size) {
 	size = (size + align - 1) / align * align;
-	void *const start = heap;
-	heap += size;
+	void *const start = prepage_heap;
+	prepage_heap += size;
 	return start;
 }

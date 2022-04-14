@@ -103,9 +103,9 @@ uint64_t fdt_prop_uint64(void *prop) {
 	return (first << 32) | FROM_BE32(*++prop32);
 }
 
-void fdt_traverse(bool (*callback)(uint32_t *token)) {
+void *fdt_traverse(bool (*callback)(uint32_t *token)) {
 	if (fdt == FDT_NOT_PRESENT) {
-		return;
+		return NULL;
 	}
-	fdt_recur((uint32_t *) fdt_dt_struct, 0, callback);
+	return fdt_recur((uint32_t *) fdt_dt_struct, 0, callback);
 }

@@ -36,7 +36,10 @@
 .macro unimplemented_handler
 	push_state
 	bl handle_unimplemented
-	pop_state
+1:
+	wfe
+	b 1b
+	//pop_state
 	eret
 .endm
 

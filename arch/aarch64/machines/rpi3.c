@@ -1,12 +1,16 @@
+#include "fdt.h"
 #include "init.h"
 #include "kio.h"
 #include "bcm2835_mini_uart.h"
 #include "bcm2835_mailbox.h"
 #include "bcm2836_ic.h"
 #include "page.h"
+#include "string.h"
 #include "timer.h"
 
 uint8_t *initrd_start = (uint8_t *) 0x8000000;
+
+static void *initrd_end;
 
 extern void arm_exceptions();
 
@@ -30,6 +34,26 @@ static void timer_act() {
 	kputs("\n");
 }
 
+static bool initrd_set_addr(uint32_t *token) {
+	static bool handled = false;
+	if (!strcmp(fdt_full_path, "/chosen")) {
+		handled = true;
+		uint32_t len;
+		void *prop = fdt_get_prop(token, "linux,initrd-start", &len);
+		if (prop) {
+			initrd_start = (uint8_t *) (len == 4 ?
+				fdt_prop_uint32(prop) : fdt_prop_uint64(prop));
+		}
+		prop = fdt_get_prop(token, "linux,initrd-end", &len);
+		if (prop) {
+			initrd_end = (void *) (len == 4 ?
+				fdt_prop_uint32(prop) : fdt_prop_uint64(prop));
+		}
+		return true;
+	}
+	return handled;
+}
+
 void machine_init() {
 	//register_timer(2, timer_act, NULL, -20);
 	arm_exceptions();
@@ -38,8 +62,11 @@ void machine_init() {
 	kconsole = &kcon;
 	enable_core0_cntp_irq();
 	bcm2835_mbox_print_info();
-	page_alloc_preinit();
-	mem_reserve((void *)0x1d000000, (void *)0x1f000000);
+	fdt_init();
+	void *fdt_end = fdt_traverse(initrd_set_addr);
+	page_alloc_preinit((void *)0x3c000000);
+	mem_reserve(fdt, fdt_end);
+	mem_reserve(initrd_start, initrd_end);
 	page_alloc_init();
 	void *p1 = page_alloc(4);
 	page_free(page_alloc(3));

@@ -11,4 +11,6 @@ SECTIONS
   .bss : { *(.bss) }
   __bss_end = .;
   __bss_size = __bss_end - __bss_start;
+  . = ALIGN(8);
+  __prepage_heap = .;
 }
