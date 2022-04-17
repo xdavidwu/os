@@ -68,9 +68,6 @@ void machine_init() {
 	mem_reserve(fdt, fdt_end);
 	mem_reserve(initrd_start, initrd_end);
 	page_alloc_init();
-	void *p1 = page_alloc(4);
-	page_free(page_alloc(3));
-	page_free(p1);
 	malloc_init();
 	main();
 }

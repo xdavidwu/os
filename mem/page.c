@@ -80,11 +80,11 @@ void *page_alloc(int ord) {
 			}
 			page_buddies[take].status = ord;
 			page_buddies[take].prev = NULL;
-			kputs("take page: ");
-			kput32x(take);
-			kputs(" ord: ");
-			kput16x(a);
-			kputs("\n");
+			//kputs("take page: ");
+			//kput32x(take);
+			//kputs(" ord: ");
+			//kput16x(a);
+			//kputs("\n");
 			while (a > ord) {
 				a--;
 				struct page_buddy *const ptrb = free_lists[a].next;
@@ -96,11 +96,11 @@ void *page_alloc(int ord) {
 				free_lists[a].next->next = ptrb;
 				free_lists[a].next->prev = &free_lists[a];
 				page_buddies[idx].status = a;
-				kputs(" release page: ");
-				kput32x(idx);
-				kputs(" ord: ");
-				kput16x(a);
-				kputs("\n");
+				//kputs(" release page: ");
+				//kput32x(idx);
+				//kputs(" ord: ");
+				//kput16x(a);
+				//kputs("\n");
 			}
 			ENABLE_INTERRUPTS();
 			return page_base + take * PAGE_UNIT;
@@ -115,11 +115,11 @@ void page_free(void *page) {
 	int ord = page_buddies[idx].status;
 	page_buddies[idx].status = BUDDY_IS_BUDDY;
 	page_buddies[idx].prev = NULL;
-	kputs("free page: ");
-	kput32x(idx);
-	kputs(" ord: ");
-	kput16x(ord);
-	kputs("\n");
+	//kputs("free page: ");
+	//kput32x(idx);
+	//kputs(" ord: ");
+	//kput16x(ord);
+	//kputs("\n");
 	while (ord < MAX_ORD) {
 		int bud = idx ^ (1 << ord);
 		if (!page_buddies[bud].prev || page_buddies[bud].reserved || page_buddies[bud].status != ord) {
@@ -132,11 +132,11 @@ void page_free(void *page) {
 		page_buddies[bud].status = BUDDY_IS_BUDDY;
 		page_buddies[bud].prev = NULL;
 		idx = bud < idx ? bud : idx;
-		kputs(" merge page: ");
-		kput32x(bud);
-		kputs(" ord: ");
-		kput16x(ord);
-		kputs("\n");
+		//kputs(" merge page: ");
+		//kput32x(bud);
+		//kputs(" ord: ");
+		//kput16x(ord);
+		//kputs("\n");
 		ord++;
 	}
 	struct page_buddy *ptrb = free_lists[ord].next;
@@ -147,11 +147,11 @@ void page_free(void *page) {
 	free_lists[ord].next->next = ptrb;
 	free_lists[ord].next->prev = &free_lists[ord];
 	page_buddies[idx].status = ord;
-	kputs(" create: ");
-	kput32x(idx);
-	kputs(" ord: ");
-	kput16x(ord);
-	kputs("\n");
+	//kputs(" create: ");
+	//kput32x(idx);
+	//kputs(" ord: ");
+	//kput16x(ord);
+	//kputs("\n");
 	ENABLE_INTERRUPTS();
 }
 
