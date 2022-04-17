@@ -44,7 +44,11 @@
 .endm
 
 .macro sync_handler
-	unimplemented_handler
+	push_state
+	mov x0, sp
+	bl handle_sync
+	pop_state
+	eret
 .endm
 
 .macro irq_handler

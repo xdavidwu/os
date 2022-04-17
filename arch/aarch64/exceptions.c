@@ -1,6 +1,8 @@
+#include "aarch64/registers.h"
 #include "bcm2836_ic.h"
 #include "exceptions.h"
 #include "kio.h"
+#include "syscall.h"
 #include <stdbool.h>
 
 int interrupt_ref = 0;
@@ -128,4 +130,15 @@ void handle_irq() {
 	}
 
 	irq_lvl--;
+}
+
+void handle_sync(struct trapframe *trapframe) {
+	uint64_t esr_el1;
+	__asm__ ("mrs %0, esr_el1" : "=r" (esr_el1));
+
+	if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_SVC_AARCH64) {
+		syscall(trapframe);
+	} else {
+		handle_unimplemented();
+	}
 }

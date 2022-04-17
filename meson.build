@@ -29,6 +29,7 @@ sources = [
   'console/kio.c',
   'cpio.c',
   'fdt.c',
+  'syscall.c',
   'mem/page.c',
   'mem/prepage.c',
   'mem/malloc.c',
