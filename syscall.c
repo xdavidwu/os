@@ -1,4 +1,5 @@
 #include "aarch64/registers.h"
+#include "bcm2835_mailbox.h"
 #include "kio.h"
 #include "syscall.h"
 #include <stddef.h>
@@ -30,6 +31,10 @@ static reg_t (*syscalls[])(reg_t, reg_t) = {
 	syscall_reserved,
 	cread,
 	cwrite,
+	syscall_reserved,
+	syscall_reserved,
+	syscall_reserved,
+	(reg_t (*)(reg_t, reg_t))mbox_call,
 };
 
 void syscall(struct trapframe *trapframe) {

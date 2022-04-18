@@ -13,6 +13,15 @@ static void kpu32x(uint32_t val) {
 	kputs(hexbuf);
 }
 
+// this is awkward to use, but homework syscall spec seems to require it
+uint32_t mbox_call(int channel, void *mbox) {
+	uint32_t msg = (((uint64_t) mbox) & ~MAILBOX_CHANNEL_MASK) | channel;
+	while (*MAILBOX_STATUS & MAILBOX_FULL);
+	*MAILBOX_1_WRITE = msg;
+	while (*MAILBOX_STATUS & MAILBOX_EMPTY);
+	return *MAILBOX_0_READ;
+}
+
 void bcm2835_mbox_print_info() {
 	DEFINE_MAILBOX_BUFFER(buf,
 		DEFINE_MAILBOX_TAG(model, 4)
@@ -29,11 +38,8 @@ void bcm2835_mbox_print_info() {
 	INIT_MAILBOX_TAG(buf.vmeminfo);
 	buf.vmeminfo.id = TAG_GET_VC_MEMINFO;
 
-	uint32_t msg = (((uint64_t) &buf) & ~MAILBOX_CHANNEL_MASK) | MAILBOX_CHANNEL_PROP;
-	while (*MAILBOX_STATUS & MAILBOX_FULL);
-	*MAILBOX_1_WRITE = msg;
-	while (*MAILBOX_STATUS & MAILBOX_EMPTY);
-	if (*MAILBOX_0_READ != msg) {
+	if (mbox_call(MAILBOX_CHANNEL_PROP, &buf) != (((uint64_t)&buf &
+				~MAILBOX_CHANNEL_MASK) | MAILBOX_CHANNEL_PROP)) {
 		kputs("ERR: unexpected value on mailbox read\n");
 		return;
 	} else if (buf.code != 0x80000000) {

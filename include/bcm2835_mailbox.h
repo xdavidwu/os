@@ -1,6 +1,8 @@
 #ifndef BCM2835_MAILBOX_H
 #define BCM2835_MAILBOX_H
 
+#include <stdint.h>
+
 #define MAILBOX_CHANNEL_MASK	0xf
 #define MAILBOX_CHANNEL_PROP	0x8
 #define MAILBOX_REQUEST	0x0
@@ -38,6 +40,7 @@
 #define TAG_GET_CPU_MEMINFO	0x00010005
 #define TAG_GET_VC_MEMINFO	0x00010006
 
+uint32_t mbox_call(int channel, void *mbox);
 void bcm2835_mbox_print_info();
 
 #endif
