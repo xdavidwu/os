@@ -26,16 +26,14 @@ static reg_t cread(reg_t rbuf, reg_t rsize) {
 	return rsize;
 }
 
-#define SYSCALLS_COUNT	3
 static reg_t (*syscalls[])(reg_t, reg_t) = {
 	syscall_reserved,
 	cread,
 	cwrite,
 };
 
-
 void syscall(struct trapframe *trapframe) {
-	if (trapframe->REGISTER_SYSCALL_NUM >= SYSCALLS_COUNT) {
+	if (trapframe->REGISTER_SYSCALL_NUM >= sizeof(syscalls) / sizeof(syscalls[0])) {
 		kputs("Unrecognized syscall\n");
 	} else {
 		trapframe->REGISTER_SYSCALL_RET =
