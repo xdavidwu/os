@@ -17,10 +17,19 @@ static reg_t cwrite(reg_t rbuf, reg_t rsize) {
 	return rsize;
 }
 
+static reg_t cread(reg_t rbuf, reg_t rsize) {
+	char *buf = (char *)rbuf;
+	size_t size = (size_t) rsize;
+	for (int a = 0; a < size; a++) {
+		buf[a] = kgetc();
+	}
+	return rsize;
+}
+
 #define SYSCALLS_COUNT	3
 static reg_t (*syscalls[])(reg_t, reg_t) = {
 	syscall_reserved,
-	syscall_reserved,
+	cread,
 	cwrite,
 };
 
