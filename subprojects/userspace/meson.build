@@ -14,6 +14,7 @@ add_project_link_arguments(
 
 svcelf = executable('svc.elf', 'arch/aarch64/svc.S')
 loopelf = executable('loop.elf', 'arch/aarch64/loop.S')
+echoelf = executable('echo.elf', 'arch/aarch64/echo.S')
 
 objcopy = find_program(meson.get_external_property('prefix') + 'objcopy')
 
@@ -27,6 +28,13 @@ custom_target('svc-image',
 custom_target('loop-image',
   output: 'loop.img',
   input: loopelf,
+  command: [objcopy, '-O', 'binary', '@INPUT@', '@OUTPUT@'],
+  build_by_default: true,
+)
+
+custom_target('echo-image',
+  output: 'echo.img',
+  input: echoelf,
   command: [objcopy, '-O', 'binary', '@INPUT@', '@OUTPUT@'],
   build_by_default: true,
 )
