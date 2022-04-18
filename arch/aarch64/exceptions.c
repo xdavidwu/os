@@ -137,7 +137,9 @@ void handle_sync(struct trapframe *trapframe) {
 	__asm__ ("mrs %0, esr_el1" : "=r" (esr_el1));
 
 	if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_SVC_AARCH64) {
+		__asm__ ("msr DAIFClr, 0xf");
 		syscall(trapframe);
+		__asm__ ("msr DAIFSet, 0xf\nisb");
 	} else {
 		handle_unimplemented();
 	}
