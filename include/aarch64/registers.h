@@ -19,6 +19,24 @@ struct trapframe {
 	reg_t spsr_el1, elr_el1;
 };
 
+struct kthread_states {
+	reg_t x0, x1; // x0 x1 used for initial param
+	reg_t x19, x20;
+	reg_t x21, x22;
+	reg_t x23, x24;
+	reg_t x25, x26;
+	reg_t x27, x28;
+	reg_t x29, x30;
+	reg_t x31, pid;
+	void *stack_page;
+	struct kthread_states *next, *prev;
+};
+
+#define REGISTER_LR	x30
+#define REGISTER_SP	x31
+#define REGISTER_P1	x0
+#define REGISTER_P2	x1
+
 #define REGISTER_SYSCALL_NUM	x8
 #define REGISTER_SYSCALL_RET	x0
 #define REGISTER_SYSCALL_P1	x0

@@ -1,6 +1,7 @@
 #include "cpio.h"
 #include "fdt.h"
 #include "init.h"
+#include "kthread.h"
 #include "kio.h"
 #include "stdlib.h"
 #include "string.h"
@@ -217,5 +218,6 @@ void kshell() {
 			kputs(buf);
 			kputs("\n");
 		}
+		kthread_yield();
 	}
 }
