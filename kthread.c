@@ -9,6 +9,7 @@ static struct kthread_states *runq;
 static struct kthread_states *zombies;
 
 extern void kthread_switch(struct kthread_states *from, struct kthread_states *to);
+extern void kthread_exit_next(struct kthread_states *unused, struct kthread_states *to);
 
 static void kthread_wrap(void (*func)(void *), void *data) {
 	func(data);
@@ -90,5 +91,5 @@ void kthread_exit() {
 	runq->next->prev = runq->prev;
 	runq = runq->next;
 	ENABLE_INTERRUPTS();
-	kthread_switch(states, to);
+	kthread_exit_next(states, to);
 }
