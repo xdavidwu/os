@@ -171,6 +171,24 @@ static void prio() {
 	register_timer(1, prio_task, NULL, 19);
 }
 
+static void kthr_thr(void *data) {
+	uint64_t n = (uint64_t)data;
+	for (int i = 0; i < 10; i++) {
+		kputs("Thread: ");
+		kputc('0' + n);
+		kputc(' ');
+		kputc('0' + i);
+		kputc('\n');
+		kthread_yield();
+	}
+}
+
+static void kthr() {
+	for (uint64_t i = 0; i < 5; i++) {
+		kthread_create(kthr_thr, (void *)i);
+	}
+}
+
 static void help();
 
 static const struct kshell_cmd kshell_cmds[] = {
@@ -184,6 +202,7 @@ static const struct kshell_cmd kshell_cmds[] = {
 	{"exec",	"load from initrd cpio and exec",	exec},
 	{"sleep",	"print something after a few seconds",	sleep},
 	{"prio",	"task priority test",	prio},
+	{"kthr",	"test kthreads",	kthr},
 	{0},
 };
 
@@ -218,6 +237,5 @@ void kshell() {
 			kputs(buf);
 			kputs("\n");
 		}
-		kthread_yield();
 	}
 }
