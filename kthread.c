@@ -37,8 +37,6 @@ void kthread_create(void (*func)(void *), void *data) {
 		states->next = NULL;
 		states->prev = runq;
 	}
-	states->next = runq;
-	runq = states;
 	ENABLE_INTERRUPTS();
 }
 
@@ -72,8 +70,8 @@ void kthread_yield() {
 		states->next = NULL;
 		// pop
 		struct kthread_states *to = runq;
+		runq->next->prev = runq->prev;
 		runq = runq->next;
-		runq->prev = runq;
 		ENABLE_INTERRUPTS();
 		kthread_switch(states, to);
 	} else {
