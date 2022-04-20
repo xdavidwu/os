@@ -85,4 +85,10 @@ void kthread_exit() {
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
 	states->next = zombies;
 	zombies = states;
+	DISABLE_INTERRUPTS();
+	struct kthread_states *to = runq;
+	runq->next->prev = runq->prev;
+	runq = runq->next;
+	ENABLE_INTERRUPTS();
+	kthread_switch(states, to);
 }
