@@ -1,5 +1,6 @@
 #include "console.h"
 #include "exceptions.h"
+#include "kthread.h"
 
 static void cputc_raw(struct console *con, uint8_t c) {
 	DISABLE_INTERRUPTS();
@@ -153,7 +154,9 @@ void cconsume_nonblock(struct console *con) {
 
 char cgetc(struct console *con) {
 	char c;
-	while (con->input.buffer.head == con->input.buffer.tail);
+	while (con->input.buffer.head == con->input.buffer.tail) {
+		kthread_yield();
+	}
 	DISABLE_INTERRUPTS();
 	c = con->input.buffer.data[con->input.buffer.head];
 	con->input.buffer.full = false;
