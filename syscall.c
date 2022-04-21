@@ -1,6 +1,7 @@
 #include "aarch64/registers.h"
 #include "bcm2835_mailbox.h"
 #include "kio.h"
+#include "kthread.h"
 #include "process.h"
 #include "syscall.h"
 #include <stddef.h>
@@ -28,8 +29,14 @@ static reg_t cread(reg_t rbuf, reg_t rsize) {
 	return rsize;
 }
 
+static reg_t getpid() {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	return states->pid;
+}
+
 static reg_t (*syscalls[])(reg_t, reg_t) = {
-	syscall_reserved,
+	getpid,
 	cread,
 	cwrite,
 	syscall_reserved,
