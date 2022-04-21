@@ -10,8 +10,8 @@ _start:
 	svc 0
 	cmp x19, 5
 	blt 1b
-1:
-	b 1b
+	mov x8, 5
+	svc 0
 
 	.section ".rodata"
 str:
