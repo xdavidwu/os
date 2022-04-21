@@ -1,6 +1,7 @@
 #include "aarch64/registers.h"
 #include "bcm2835_mailbox.h"
 #include "kio.h"
+#include "process.h"
 #include "syscall.h"
 #include <stddef.h>
 
@@ -33,7 +34,7 @@ static reg_t (*syscalls[])(reg_t, reg_t) = {
 	cwrite,
 	syscall_reserved,
 	syscall_reserved,
-	syscall_reserved,
+	(reg_t (*)(reg_t, reg_t))process_exit,
 	(reg_t (*)(reg_t, reg_t))mbox_call,
 };
 

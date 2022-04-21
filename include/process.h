@@ -5,10 +5,12 @@
 #include <stdint.h>
 
 struct process_states {
-	void *image_page;
+	void *page;
 	size_t image_size;
 };
 
 void process_exec(uint8_t *image, size_t image_size);
+
+void process_exit();
 
 #endif
