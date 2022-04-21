@@ -1,8 +1,12 @@
 #include "aarch64/registers.h"
 #include "bcm2835_mailbox.h"
+#include "cpio.h"
+#include "errno.h"
+#include "init.h"
 #include "kio.h"
 #include "kthread.h"
 #include "process.h"
+#include "string.h"
 #include "syscall.h"
 #include <stddef.h>
 
@@ -35,11 +39,32 @@ static reg_t getpid() {
 	return states->pid;
 }
 
+static reg_t exec(reg_t rname, reg_t unused) {
+	const char *name = (const char *)rname;
+	uint8_t *cpio = initrd_start;
+	if (cpio_is_end(cpio)) {
+		return -ENOENT;
+	}
+	uint32_t namesz, filesz;
+	do {
+		struct cpio_newc_header *cpio_header =
+			(struct cpio_newc_header *) cpio;
+		namesz = cpio_get_uint32(cpio_header->c_namesize);
+		filesz = cpio_get_uint32(cpio_header->c_filesize);
+		if (!strcmp(cpio_get_name(cpio), name)) {
+			cpio = cpio_get_file(cpio, namesz);
+			process_exec_inplace(cpio, filesz);
+			return 0;
+		}
+	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
+	return -ENOENT;
+}
+
 static reg_t (*syscalls[])(reg_t, reg_t) = {
 	getpid,
 	cread,
 	cwrite,
-	syscall_reserved,
+	exec,
 	syscall_reserved,
 	(reg_t (*)(reg_t, reg_t))process_exit,
 	(reg_t (*)(reg_t, reg_t))mbox_call,

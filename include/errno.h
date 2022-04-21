@@ -6,6 +6,7 @@ enum {
 	EWOULDBLOCK,
 	ENOSPC,
 	ENOMEM,
+	ENOENT,
 };
 
 #endif

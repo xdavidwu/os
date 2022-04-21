@@ -11,6 +11,8 @@ struct process_states {
 
 int process_exec(uint8_t *image, size_t image_size);
 
+void process_exec_inplace(uint8_t *image, size_t image_size);
+
 void process_exit();
 
 #endif
