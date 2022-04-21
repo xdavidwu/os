@@ -11,7 +11,7 @@ static void exec_wrap(struct process_states *states) {
 	exec_user(states->page + PAGE_UNIT);
 }
 
-void process_exec(uint8_t *image, size_t image_size) {
+int process_exec(uint8_t *image, size_t image_size) {
 	struct process_states *process = malloc(sizeof(struct process_states));
 	int page_ord = 1;
 	int pages = (image_size + PAGE_UNIT - 1) / PAGE_UNIT + 1;
@@ -25,7 +25,7 @@ void process_exec(uint8_t *image, size_t image_size) {
 	while (image_size--) {
 		*ptr++ = *image++;
 	}
-	kthread_create((void (*)(void *))exec_wrap, process);
+	return kthread_create((void (*)(void *))exec_wrap, process);
 }
 
 void process_exit() {

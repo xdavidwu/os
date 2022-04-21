@@ -9,7 +9,7 @@ struct process_states {
 	size_t image_size;
 };
 
-void process_exec(uint8_t *image, size_t image_size);
+int process_exec(uint8_t *image, size_t image_size);
 
 void process_exit();
 
