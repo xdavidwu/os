@@ -1,7 +1,7 @@
 #ifndef KTHREAD_H
 #define KTHREAD_H
 
-void kthread_create(void (*func)(void *), void *data);
+int kthread_create(void (*func)(void *), void *data);
 
 void kthread_yield();
 

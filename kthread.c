@@ -16,11 +16,12 @@ static void kthread_wrap(void (*func)(void *), void *data) {
 	kthread_exit();
 }
 
-void kthread_create(void (*func)(void *), void *data) {
+int kthread_create(void (*func)(void *), void *data) {
 	struct kthread_states *states = malloc(sizeof(struct kthread_states));
 	DISABLE_INTERRUPTS();
-	states->pid = pid++;
+	int mpid = pid++;
 	ENABLE_INTERRUPTS();
+	states->pid = mpid;
 	states->REGISTER_LR = (reg_t)kthread_wrap;
 	states->REGISTER_P1 = (reg_t)func;
 	states->REGISTER_P2 = (reg_t)data;
@@ -40,6 +41,7 @@ void kthread_create(void (*func)(void *), void *data) {
 		states->prev = runq;
 	}
 	ENABLE_INTERRUPTS();
+	return mpid;
 }
 
 void kthread_loop() {
