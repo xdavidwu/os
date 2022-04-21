@@ -3,6 +3,7 @@
 #include "kthread.h"
 #include "page.h"
 #include "stdlib.h"
+#include <stdbool.h>
 
 static int pid = 1;
 static struct kthread_states *runq;
@@ -95,4 +96,24 @@ void kthread_exit() {
 	runq = runq->next;
 	ENABLE_INTERRUPTS();
 	kthread_exit_next(states, to);
+}
+
+void kthread_wait(int id) {
+	while (1) {
+		bool found = false;
+		DISABLE_INTERRUPTS();
+		struct kthread_states *states = runq;
+		while (states) {
+			if (states->pid == id) {
+				found = true;
+				break;
+			}
+			states = states->next;
+		}
+		ENABLE_INTERRUPTS();
+		if (!found) {
+			return;
+		}
+		kthread_yield();
+	}
 }

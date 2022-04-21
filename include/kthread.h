@@ -7,4 +7,6 @@ void kthread_yield();
 
 void kthread_exit();
 
+void kthread_wait(int id);
+
 #endif
