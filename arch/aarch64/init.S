@@ -20,6 +20,9 @@ clear_bss:
 	ldr x1, =__prepage_heap
 	ldr x2, =prepage_heap
 	str x1, [x2]
+	mrs x0, cntkctl_el1
+	orr x0, x0, 1
+	msr cntkctl_el1, x0
 	bl machine_init
 el1:
 	mov x1, (1 << 31) // HCR_EL2.RW
