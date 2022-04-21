@@ -85,7 +85,7 @@ static void exec() {
 		filesz = cpio_get_uint32(cpio_header->c_filesize);
 		if (!strcmp(cpio_get_name(cpio), buf)) {
 			cpio = cpio_get_file(cpio, namesz);
-			process_exec(cpio, filesz);
+			kthread_wait(process_exec(cpio, filesz));
 			break;
 		}
 	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
