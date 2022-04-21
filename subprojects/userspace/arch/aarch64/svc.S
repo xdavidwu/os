@@ -4,7 +4,7 @@ _start:
 	mov x19, 0
 1:
 	add x19, x19, 1
-	ldr x0, =str
+	adr x0, str
 	mov x1, 13
 	mov x8, 2
 	svc 0
