@@ -30,6 +30,7 @@ struct kthread_states {
 	reg_t x31, pid;
 	void *stack_page;
 	struct kthread_states *next, *prev;
+	void *data;
 };
 
 #define REGISTER_LR	x30

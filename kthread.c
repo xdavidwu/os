@@ -26,6 +26,7 @@ void kthread_create(void (*func)(void *), void *data) {
 	states->REGISTER_P2 = (reg_t)data;
 	states->stack_page = page_alloc(1);
 	states->REGISTER_SP = (reg_t)states->stack_page + PAGE_UNIT;
+	states->data = data;
 	DISABLE_INTERRUPTS();
 	if (runq) {
 		struct kthread_states *ptrb = runq->prev;

@@ -31,6 +31,7 @@ sources = [
   'cpio.c',
   'fdt.c',
   'kthread.c',
+  'process.c',
   'syscall.c',
   'mem/page.c',
   'mem/prepage.c',

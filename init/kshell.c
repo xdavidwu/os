@@ -3,14 +3,12 @@
 #include "init.h"
 #include "kthread.h"
 #include "kio.h"
+#include "process.h"
 #include "stdlib.h"
 #include "string.h"
 #include "timer.h"
 #include "pm.h"
 #include <stdint.h>
-
-static uint8_t *const userspace_start_addr = (uint8_t *) 0x100000;
-extern void exec_user(uint8_t *addr);
 
 struct kshell_cmd {
 	const char *cmd;
@@ -87,11 +85,7 @@ static void exec() {
 		filesz = cpio_get_uint32(cpio_header->c_filesize);
 		if (!strcmp(cpio_get_name(cpio), buf)) {
 			cpio = cpio_get_file(cpio, namesz);
-			uint8_t *ptr = userspace_start_addr;
-			while (filesz--) {
-				*ptr++ = *cpio++;
-			}
-			exec_user(userspace_start_addr);
+			process_exec(cpio, filesz);
 			break;
 		}
 	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
