@@ -5,8 +5,8 @@
 #include "stdlib.h"
 #include <stdbool.h>
 
-static int pid = 1;
-static struct kthread_states *runq;
+int pid = 1;
+struct kthread_states *runq;
 static struct kthread_states *zombies;
 
 extern void kthread_switch(struct kthread_states *from, struct kthread_states *to);

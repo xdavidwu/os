@@ -25,3 +25,22 @@ kthread_exit_next:
 	msr tpidr_el1, x1
 	ldp x0, x1, [x1, 16 * 0]
 	ret
+
+	.global kthread_dup
+	.type kthread_dup, %function
+kthread_dup:
+	stp x19, x20, [x0, 16 * 1]
+	stp x21, x22, [x0, 16 * 2]
+	stp x23, x24, [x0, 16 * 3]
+	stp x25, x26, [x0, 16 * 4]
+	stp x27, x28, [x0, 16 * 5]
+	stp x29, x30, [x0, 16 * 6]
+	mov x6, sp
+	sub x6, x6, x1
+	add x6, x6, x2
+	mrs x7, sp_el0
+	sub x7, x7, x3
+	add x7, x7, x4
+	stp x6, x7, [x0, 16 * 7]
+	mov x0, x5
+	ret

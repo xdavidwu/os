@@ -65,7 +65,7 @@ static reg_t (*syscalls[])(reg_t, reg_t) = {
 	cread,
 	cwrite,
 	exec,
-	syscall_reserved,
+	(reg_t (*)(reg_t, reg_t))process_dup,
 	(reg_t (*)(reg_t, reg_t))process_exit,
 	(reg_t (*)(reg_t, reg_t))mbox_call,
 };

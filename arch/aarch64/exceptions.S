@@ -32,7 +32,6 @@
 	add sp, sp, 16 * 11
 .endm
 
-
 .macro unimplemented_handler
 	push_state
 	bl handle_unimplemented
