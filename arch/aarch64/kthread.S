@@ -9,8 +9,9 @@ kthread_switch:
 	stp x25, x26, [x0, 16 * 4]
 	stp x27, x28, [x0, 16 * 5]
 	stp x29, x30, [x0, 16 * 6]
-	mov x3, sp
-	str x3, [x0, 16 * 7]
+	mov x2, sp
+	mrs x3, sp_el0
+	stp x2, x3, [x0, 16 * 7]
 kthread_exit_next:
 	ldp x19, x20, [x1, 16 * 1]
 	ldp x21, x22, [x1, 16 * 2]
@@ -18,8 +19,9 @@ kthread_exit_next:
 	ldp x25, x26, [x1, 16 * 4]
 	ldp x27, x28, [x1, 16 * 5]
 	ldp x29, x30, [x1, 16 * 6]
-	ldr x0, [x1, 16 * 7]
+	ldp x0, x2, [x1, 16 * 7]
 	mov sp, x0
+	msr sp_el0, x2
 	msr tpidr_el1, x1
 	ldp x0, x1, [x1, 16 * 0]
 	ret

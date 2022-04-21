@@ -27,7 +27,8 @@ struct kthread_states {
 	reg_t x25, x26;
 	reg_t x27, x28;
 	reg_t x29, x30;
-	reg_t x31, pid;
+	reg_t x31, sp_el0;
+	int pid;
 	void *stack_page;
 	struct kthread_states *next, *prev;
 	void *data;
