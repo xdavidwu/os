@@ -65,7 +65,7 @@ void kthread_loop() {
 void kthread_yield() {
 	struct kthread_states *states;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
-	DISABLE_INTERRUPTS();
+	__asm__ ("msr DAIFSet, 0xf\nisb");
 	if (runq) { // if not, should be reaper loop, and nothing pending
 		// enq
 		struct kthread_states *ptrb = runq->prev;
@@ -80,7 +80,7 @@ void kthread_yield() {
 		ENABLE_INTERRUPTS();
 		kthread_switch(states, to);
 	} else {
-		ENABLE_INTERRUPTS();
+		__asm__ ("msr DAIFClr, 0xf");
 	}
 	return;
 }
@@ -90,11 +90,10 @@ void kthread_exit() {
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
 	states->next = zombies;
 	zombies = states;
-	DISABLE_INTERRUPTS();
+	__asm__ ("msr DAIFSet, 0xf\nisb");
 	struct kthread_states *to = runq;
 	runq->next->prev = runq->prev;
 	runq = runq->next;
-	ENABLE_INTERRUPTS();
 	kthread_exit_next(states, to);
 }
 

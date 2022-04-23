@@ -24,6 +24,7 @@ kthread_exit_next:
 	msr sp_el0, x2
 	msr tpidr_el1, x1
 	ldp x0, x1, [x1, 16 * 0]
+	msr DAIFClr, 0xf
 	ret
 
 	.global kthread_dup
@@ -43,4 +44,5 @@ kthread_dup:
 	add x7, x7, x4
 	stp x6, x7, [x0, 16 * 7]
 	mov x0, x5
+	msr DAIFClr, 0xf
 	ret
