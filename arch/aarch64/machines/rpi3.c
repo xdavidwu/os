@@ -60,7 +60,7 @@ void machine_init() {
 	struct console kcon;
 	bcm2835_mini_uart_setup(&kcon);
 	kconsole = &kcon;
-	enable_core0_cntp_irq();
+	enable_core0_cnt_irq();
 	bcm2835_mbox_print_info();
 	fdt_init();
 	void *fdt_end = fdt_traverse(initrd_set_addr);
