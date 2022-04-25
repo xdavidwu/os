@@ -2,11 +2,16 @@
 #include "bcm2836_ic.h"
 #include "exceptions.h"
 #include "kio.h"
+#include "page.h"
+#include "process.h"
 #include "syscall.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 int interrupt_ref = 0;
 int in_exception = 0;
+
+extern void exec_signal_handler(void *stack, void (*code)(int), uint64_t *sp, int signal);
 
 static void kput64x(uint64_t val) {
 	char hexbuf[17];
@@ -60,7 +65,7 @@ void register_task(void (*func)(void *), void *data, int prio) {
 	nested_tasks[irq_lvl].length++;
 }
 
-void handle_irq() {
+void handle_irq(bool was_el0) {
 	irq_lvl++;
 	struct tasks tasks_local[TASKS_MAX + 1]; // + 1 for sen
 	nested_tasks[irq_lvl].tasks = tasks_local;
@@ -130,7 +135,30 @@ void handle_irq() {
 	}
 
 	irq_lvl--;
+
+	if (was_el0) {
+		struct kthread_states *states;
+		__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+		struct process_states *process = states->data;
+		if (process->pending_signals && !process->signal_stack) {
+			process->signal_stack = page_alloc(1);
+			for (int i = 1; i <= SIGNAL_MAX; i++) {
+				if ((process->pending_signals & (1 << i)) == (1 << i)) {
+					process->pending_signals ^= (1 << i);
+					if (process->signal_handlers[i]) {
+						exec_signal_handler(process->signal_stack,
+							process->signal_handlers[i],
+							&process->presignal_sp, i);
+					}
+					__asm__ ("msr DAIFSet, 0xf\nisb");
+				}
+			}
+			page_free(process->signal_stack);
+			process->signal_stack = NULL;
+		}
+	}
 }
+
 
 void handle_sync(struct trapframe *trapframe) {
 	uint64_t esr_el1;
@@ -140,6 +168,25 @@ void handle_sync(struct trapframe *trapframe) {
 		__asm__ ("msr DAIFClr, 0xf");
 		syscall(trapframe);
 		__asm__ ("msr DAIFSet, 0xf\nisb");
+		struct kthread_states *states;
+		__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+		struct process_states *process = states->data;
+		if (process->pending_signals && !process->signal_stack) {
+			process->signal_stack = page_alloc(1);
+			for (int i = 1; i <= SIGNAL_MAX; i++) {
+				if ((process->pending_signals & (1 << i)) == (1 << i)) {
+					process->pending_signals ^= (1 << i);
+					if (process->signal_handlers[i]) {
+						exec_signal_handler(process->signal_stack,
+							process->signal_handlers[i],
+							&process->presignal_sp, i);
+					}
+					__asm__ ("msr DAIFSet, 0xf\nisb");
+				}
+			}
+			page_free(process->signal_stack);
+			process->signal_stack = NULL;
+		}
 	} else {
 		handle_unimplemented();
 	}

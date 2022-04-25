@@ -15,6 +15,8 @@ static void exec_wrap(struct process_states *states) {
 extern int kthread_dup(struct kthread_states *to, void *basek, void *newk,
 	void *baseu, void *newu, int ret);
 
+extern void sigkill_default();
+
 int process_exec(uint8_t *image, size_t image_size) {
 	struct process_states *process = malloc(sizeof(struct process_states));
 	process->image = malloc(sizeof(struct process_image));
@@ -31,6 +33,12 @@ int process_exec(uint8_t *image, size_t image_size) {
 		*ptr++ = *image++;
 	}
 	process->page = page_alloc(1);
+	for (int a = 0; a <= SIGNAL_MAX; a++) {
+		process->signal_handlers[a] = NULL;
+	}
+	process->signal_handlers[SIGKILL] = sigkill_default;
+	process->presignal_sp = 0;
+	process->signal_stack = NULL;
 	return kthread_create((void (*)(void *))exec_wrap, process);
 }
 
@@ -74,6 +82,12 @@ int process_dup() {
 	states->data = new;
 	states->x0 = 0;
 	states->stack_page = ptrk;
+	// TODO handle fork from signal handlers?
+	new->presignal_sp = 0;
+	new->signal_stack = NULL;
+	for (int a = 0; a <= SIGNAL_MAX; a++) {
+		new->signal_handlers[a] = process->signal_handlers[a];
+	}
 	__asm__ ("msr DAIFSet, 0xf\nisb");
 	int mpid = pid++;
 	states->pid = mpid;
@@ -107,6 +121,7 @@ void process_exit() {
 		page_free(process->image->page);
 		free(process->image);
 	}
+	page_free(process->signal_stack);
 	page_free(process->page);
 	free(process);
 	kthread_exit();

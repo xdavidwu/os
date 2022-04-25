@@ -52,6 +52,15 @@
 
 .macro irq_handler
 	push_state
+	mov x0, 0
+	bl handle_irq
+	pop_state
+	eret
+.endm
+
+.macro irq_handler_user
+	push_state
+	mov x0, 1
 	bl handle_irq
 	pop_state
 	eret
@@ -82,7 +91,7 @@ vtable:
 	# from aarch64 EL0
 	sync_handler
 	.align 7 // 0x80
-	irq_handler
+	irq_handler_user
 	.align 7 // 0x80
 	unimplemented_handler
 	.align 7 // 0x80

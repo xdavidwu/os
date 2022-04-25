@@ -4,6 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define SIGNAL_MAX	9
+
+enum {
+	SIGKILL = 9,
+};
+
 struct process_image {
 	void *page;
 	size_t size;
@@ -13,8 +19,11 @@ struct process_image {
 struct process_states {
 	void *page;
 	struct process_image *image;
+	uint32_t pending_signals;
+	void (*signal_handlers[SIGNAL_MAX + 1])(int);
+	uint64_t presignal_sp;
+	void *signal_stack;
 };
-
 
 int process_exec(uint8_t *image, size_t image_size);
 
