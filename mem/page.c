@@ -110,6 +110,9 @@ void *page_alloc(int ord) {
 }
 
 void page_free(void *page) {
+	if (!page) {
+		return;
+	}
 	int idx = (page - page_base) / PAGE_UNIT;
 	DISABLE_INTERRUPTS();
 	int ord = page_buddies[idx].status;
