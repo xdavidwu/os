@@ -85,7 +85,7 @@ void kthread_yield() {
 		runq = runq->next;
 		kthread_switch(states, to);
 	} else {
-		__asm__ ("msr DAIFClr, 0xf");
+		__asm__ ("isb\nmsr DAIFClr, 0xf");
 	}
 	return;
 }

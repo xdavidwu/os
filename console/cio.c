@@ -133,12 +133,13 @@ void cputs(struct console *con, const char *str) {
 
 void cconsume_nonblock(struct console *con) {
 	int c;
+	DISABLE_INTERRUPTS();
 	while (!con->input.buffer.full) {
 		if ((c = con->impl->getc_nonblock()) < 0) {
+			ENABLE_INTERRUPTS();
 			con->impl->set_rx_interrupt(true);
 			return;
 		}
-		DISABLE_INTERRUPTS();
 		con->input.buffer.data[con->input.buffer.tail++] = c;
 		if (con->input.buffer.tail == CONSOLE_BUFFER_SIZE) {
 			con->input.buffer.tail = 0;
@@ -150,8 +151,8 @@ void cconsume_nonblock(struct console *con) {
 			con->input.buffer.full = (con->input.buffer.tail ==
 				CONSOLE_BUFFER_SIZE - 1);
 		}
-		ENABLE_INTERRUPTS();
 	}
+	ENABLE_INTERRUPTS();
 }
 
 char cgetc(struct console *con) {

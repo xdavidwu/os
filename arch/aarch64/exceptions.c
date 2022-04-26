@@ -128,7 +128,7 @@ void handle_irq(bool was_el0) {
 		}
 		int taken = nested_tasks[irq_lvl].pending_index++;
 		nested_tasks[irq_lvl].max_prio = nested_tasks[irq_lvl].tasks[taken + 1].prio;
-		__asm__ ("msr DAIFClr, 0xf");
+		__asm__ ("isb\nmsr DAIFClr, 0xf");
 		nested_tasks[irq_lvl].tasks[taken].func(
 			nested_tasks[irq_lvl].tasks[taken].data);
 		__asm__ ("msr DAIFSet, 0xf\nisb");
@@ -154,6 +154,7 @@ void handle_irq(bool was_el0) {
 				}
 			}
 			page_free(process->signal_stack);
+			__asm__ ("msr DAIFSet, 0xf\nisb");
 			process->signal_stack = NULL;
 		}
 	}
@@ -165,7 +166,7 @@ void handle_sync(struct trapframe *trapframe) {
 	__asm__ ("mrs %0, esr_el1" : "=r" (esr_el1));
 
 	if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_SVC_AARCH64) {
-		__asm__ ("msr DAIFClr, 0xf");
+		__asm__ ("isb\nmsr DAIFClr, 0xf");
 		syscall(trapframe);
 		__asm__ ("msr DAIFSet, 0xf\nisb");
 		struct kthread_states *states;
@@ -185,6 +186,7 @@ void handle_sync(struct trapframe *trapframe) {
 				}
 			}
 			page_free(process->signal_stack);
+			__asm__ ("msr DAIFSet, 0xf\nisb");
 			process->signal_stack = NULL;
 		}
 	} else {
