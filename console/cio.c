@@ -123,10 +123,12 @@ void cputc(struct console *con, char c) {
 }
 
 void cputs(struct console *con, const char *str) {
+	DISABLE_INTERRUPTS();
 	while (*str != '\0') {
 		cputc(con, *str);
 		str++;
 	}
+	ENABLE_INTERRUPTS();
 }
 
 void cconsume_nonblock(struct console *con) {
