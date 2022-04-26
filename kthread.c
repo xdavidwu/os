@@ -77,7 +77,6 @@ void kthread_yield() {
 		struct kthread_states *to = runq;
 		runq->next->prev = runq->prev;
 		runq = runq->next;
-		ENABLE_INTERRUPTS();
 		kthread_switch(states, to);
 	} else {
 		__asm__ ("msr DAIFClr, 0xf");
@@ -88,9 +87,9 @@ void kthread_yield() {
 void kthread_exit() {
 	struct kthread_states *states;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	__asm__ ("msr DAIFSet, 0xf\nisb");
 	states->next = zombies;
 	zombies = states;
-	__asm__ ("msr DAIFSet, 0xf\nisb");
 	struct kthread_states *to = runq;
 	runq->next->prev = runq->prev;
 	runq = runq->next;
