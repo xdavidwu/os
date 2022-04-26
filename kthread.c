@@ -49,6 +49,12 @@ void kthread_loop() {
 	struct kthread_states *this = malloc(sizeof(struct kthread_states));
 	this->pid = 0;
 	__asm__ ("msr tpidr_el1, %0" : "=r" (this));
+	uint64_t freq;
+	asm("mrs %0, cntfrq_el0" : "=r" (freq));
+	uint64_t enable = 1;
+	asm("msr cntv_ctl_el0, %0": :"r" (enable));
+	freq >>= 5;
+	asm("isb\nmsr cntv_tval_el0, %0" : : "r" (freq));
 	while (1) {
 		struct kthread_states *zombie = zombies;
 		while (zombie) {
@@ -97,12 +103,6 @@ void kthread_exit() {
 }
 
 void kthread_wait(int id) {
-	uint64_t freq;
-	asm("mrs %0, cntfrq_el0" : "=r" (freq));
-	uint64_t enable = 1;
-	asm("msr cntv_ctl_el0, %0": :"r" (enable));
-	freq >>= 5;
-	asm("msr cntv_tval_el0, %0" : : "r" (freq));
 	while (1) {
 		bool found = false;
 		DISABLE_INTERRUPTS();
