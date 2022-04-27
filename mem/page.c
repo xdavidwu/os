@@ -69,9 +69,9 @@ void print_status() {
 	}
 }
 void *page_alloc(int ord) {
+	DISABLE_INTERRUPTS();
 	for (int a = ord; a <= MAX_ORD; a++) {
 		if (free_lists[a].next) {
-			DISABLE_INTERRUPTS();
 			struct page_buddy *const taken = free_lists[a].next;
 			const int take = taken - page_buddies;
 			free_lists[a].next = taken->next;
@@ -106,6 +106,7 @@ void *page_alloc(int ord) {
 			return page_base + take * PAGE_UNIT;
 		}
 	}
+	ENABLE_INTERRUPTS();
 	return (void *)-ENOMEM;
 }
 
