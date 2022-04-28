@@ -53,7 +53,7 @@ void *malloc(size_t size) {
 				ENABLE_INTERRUPTS();
 				return ptr;
 			}
-			if (mem->availiable && mem->sz <= size) {
+			if (mem->availiable && mem->sz >= size) {
 				mem->availiable = false;
 				ENABLE_INTERRUPTS();
 				return mem + 1;
