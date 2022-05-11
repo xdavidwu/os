@@ -1,3 +1,4 @@
+#include "aarch64/vmem.h"
 #include "fdt.h"
 #include "init.h"
 #include "kio.h"
@@ -7,12 +8,29 @@
 #include "page.h"
 #include "string.h"
 #include "timer.h"
+#include <stdint.h>
 
 uint8_t *initrd_start = (uint8_t *) 0x8000000;
 
 static void *initrd_end;
 
 extern void arm_exceptions();
+
+uint64_t __attribute__((aligned(4096))) pud[] = {
+	0 | PD_ACCESS | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_BLOCK,
+	0x40000000 | PD_ACCESS | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_BLOCK,
+};
+
+// | PD_TABLE is not constant but + PD_TABLE is, on GCC
+// 
+// https://stackoverflow.com/questions/58496061/why-bitwise-or-doesnt-result-in-a-constant-expression-but-addition-does
+//
+// sounds like any operation after a cast is constant or not is not guranteed by spec
+//
+// FIXME: GCC-ism?
+uint64_t __attribute__((aligned(4096))) pgd[] = {
+	(uint64_t)pud + PD_TABLE,
+};
 
 static void kpu32x(uint32_t val) {
 	char hexbuf[9];

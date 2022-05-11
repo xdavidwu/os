@@ -23,6 +23,14 @@ clear_bss:
 	mrs x0, cntkctl_el1
 	orr x0, x0, 1
 	msr cntkctl_el1, x0
+	ldr x0, =0x80100010
+	msr tcr_el1, x0
+	mov x0, 0b0000000001000100
+	msr mair_el1, x0
+	ldr x0, =pgd
+	msr ttbr0_el1, x0
+	mov x0, 1
+	msr sctlr_el1, x0
 	bl machine_init
 el1:
 	mov x1, (1 << 31) // HCR_EL2.RW
