@@ -94,13 +94,13 @@ static bool initrd_set_addr(uint32_t *token) {
 		uint32_t len;
 		void *prop = fdt_get_prop(token, "linux,initrd-start", &len);
 		if (prop) {
-			initrd_start = (uint8_t *) (len == 4 ?
-				fdt_prop_uint32(prop) : fdt_prop_uint64(prop));
+			initrd_start = ((uint8_t *) (len == 4 ?
+				fdt_prop_uint32(prop) : fdt_prop_uint64(prop))) + HIGH_MEM_OFFSET;
 		}
 		prop = fdt_get_prop(token, "linux,initrd-end", &len);
 		if (prop) {
-			initrd_end = (void *) (len == 4 ?
-				fdt_prop_uint32(prop) : fdt_prop_uint64(prop));
+			initrd_end = ((void *) (len == 4 ?
+				fdt_prop_uint32(prop) : fdt_prop_uint64(prop))) + HIGH_MEM_OFFSET;
 		}
 		return true;
 	}
