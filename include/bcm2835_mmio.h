@@ -1,9 +1,10 @@
 #ifndef BCM2835_MMIO_H
 #define BCM2835_MMIO_H
 
+#include "aarch64/vmem.h"
 #include <stdint.h>
 
-#define MMIO_BASE	0x3f000000
+#define MMIO_BASE	(HIGH_MEM_OFFSET + 0x3f000000)
 
 #define IC_OFFSET	0xb000
 
