@@ -1,9 +1,10 @@
 #ifndef BCM2836_IC_H
 #define BCM2836_IC_H
 
+#include "aarch64/vmem.h"
 #include <stdint.h>
 
-#define BCM2836_IC_BASE	0x40000000
+#define BCM2836_IC_BASE	(HIGH_MEM_OFFSET + 0x40000000)
 
 #define CORE0_TIMER_IRQCNTL	((uint32_t *) (BCM2836_IC_BASE + 0x40))
 
