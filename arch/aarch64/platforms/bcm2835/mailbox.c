@@ -1,3 +1,4 @@
+#include "aarch64/vmem.h"
 #include "bcm2835_mmio.h"
 #include "bcm2835_mailbox.h"
 #include "kio.h"
@@ -15,7 +16,9 @@ static void kpu32x(uint32_t val) {
 
 // this is awkward to use, but homework syscall spec seems to require it
 uint32_t mbox_call(int channel, void *mbox) {
-	uint32_t msg = (((uint64_t) mbox) & ~MAILBOX_CHANNEL_MASK) | channel;
+	uint64_t addr = (uint64_t) mbox;
+	addr = addr > HIGH_MEM_OFFSET ? addr - HIGH_MEM_OFFSET : addr;
+	uint32_t msg = (((uint64_t) addr) & ~MAILBOX_CHANNEL_MASK) | channel;
 	while (*MAILBOX_STATUS & MAILBOX_FULL);
 	*MAILBOX_1_WRITE = msg;
 	while (*MAILBOX_STATUS & MAILBOX_EMPTY);
@@ -38,7 +41,7 @@ void bcm2835_mbox_print_info() {
 	INIT_MAILBOX_TAG(buf.vmeminfo);
 	buf.vmeminfo.id = TAG_GET_VC_MEMINFO;
 
-	if (mbox_call(MAILBOX_CHANNEL_PROP, &buf) != (((uint64_t)&buf &
+	if (mbox_call(MAILBOX_CHANNEL_PROP, &buf) != ((((uint64_t)&buf - HIGH_MEM_OFFSET) &
 				~MAILBOX_CHANNEL_MASK) | MAILBOX_CHANNEL_PROP)) {
 		kputs("ERR: unexpected value on mailbox read\n");
 		return;
