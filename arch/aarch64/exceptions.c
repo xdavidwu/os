@@ -198,5 +198,6 @@ void handle_sync(struct trapframe *trapframe) {
 		}
 	} else {
 		handle_unimplemented();
+		while (1);
 	}
 }
