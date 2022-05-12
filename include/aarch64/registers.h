@@ -17,6 +17,7 @@ struct trapframe {
 	reg_t x16, x17;
 	reg_t x18, x30;
 	reg_t spsr_el1, elr_el1;
+	reg_t ttbr0_el1;
 };
 
 struct kthread_states {

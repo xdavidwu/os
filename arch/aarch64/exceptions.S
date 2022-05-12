@@ -1,5 +1,5 @@
 .macro push_state
-	sub sp, sp, 16 * 11
+	sub sp, sp, 16 * 12
 	stp x0, x1, [sp, 16 * 0]
 	stp x2, x3, [sp, 16 * 1]
 	stp x4, x5, [sp, 16 * 2]
@@ -29,7 +29,7 @@
 	ldp x14, x15, [sp, 16 * 7]
 	ldp x16, x17, [sp, 16 * 8]
 	ldp x18, x30, [sp, 16 * 9]
-	add sp, sp, 16 * 11
+	add sp, sp, 16 * 12
 .endm
 
 .macro unimplemented_handler
@@ -44,8 +44,9 @@
 
 .macro sync_handler
 	push_state
-	mov x0, sp
+	bl push_user_state
 	bl handle_sync
+	bl pop_user_state
 	pop_state
 	eret
 .endm
@@ -60,11 +61,27 @@
 
 .macro irq_handler_user
 	push_state
-	mov x0, 1
+	bl push_user_state
 	bl handle_irq
+	bl pop_user_state
 	pop_state
 	eret
 .endm
+
+push_user_state:
+	mrs x0, ttbr0_el1
+	str x0, [sp, 16 * 11]
+	mov x0, sp
+	ret
+
+pop_user_state:
+	ldr x0, [sp, 16 * 11]
+	dsb ish
+	msr ttbr0_el1, x0
+	tlbi vmalle1is
+	dsb ish
+	isb
+	ret
 
 	.align 11 // 0x800
 vtable:
