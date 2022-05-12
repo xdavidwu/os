@@ -1,3 +1,4 @@
+#include "aarch64/vmem.h"
 #include "aarch64/registers.h"
 #include "exceptions.h"
 #include "kthread.h"
@@ -26,7 +27,7 @@ int kthread_create(void (*func)(void *), void *data) {
 	states->REGISTER_LR = (reg_t)kthread_wrap;
 	states->REGISTER_P1 = (reg_t)func;
 	states->REGISTER_P2 = (reg_t)data;
-	states->stack_page = page_alloc(1);
+	states->stack_page = page_alloc(1) + HIGH_MEM_OFFSET;
 	states->REGISTER_SP = (reg_t)states->stack_page + PAGE_UNIT;
 	states->data = data;
 	DISABLE_INTERRUPTS();

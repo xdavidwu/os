@@ -1,3 +1,4 @@
+#include "aarch64/vmem.h"
 #include "exceptions.h"
 #include "page.h"
 #include <stdbool.h>
@@ -30,7 +31,7 @@ struct mem_header {
 static struct bookkeeping_page_content *bookkeeping_page;
 
 void malloc_init() {
-	bookkeeping_page = page_alloc(1);
+	bookkeeping_page = page_alloc(1) + HIGH_MEM_OFFSET;
 	bookkeeping_page->sz = 0;
 }
 
@@ -67,7 +68,7 @@ void *malloc(size_t size) {
 	while (page_count > (1 << ord)) {
 		ord++;
 	}
-	struct mem_header *mem = page_alloc(ord);
+	struct mem_header *mem = page_alloc(ord) + HIGH_MEM_OFFSET;
 	bookkeeping_page->pages[bookkeeping_page->sz].addr = mem;
 	bookkeeping_page->pages[bookkeeping_page->sz].count = 1 << ord;
 	bookkeeping_page->sz++;

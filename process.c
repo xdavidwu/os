@@ -1,3 +1,4 @@
+#include "aarch64/vmem.h"
 #include "aarch64/registers.h"
 #include "exceptions.h"
 #include "kthread.h"
@@ -75,7 +76,7 @@ int process_dup() {
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
 	process->image->ref++;
-	register uint8_t *ptr = page_alloc(1), *old = process->page, *ptrk = page_alloc(1), *oldk = kthr->stack_page;
+	register uint8_t *ptr = page_alloc(1), *old = process->page, *ptrk = page_alloc(1) + HIGH_MEM_OFFSET, *oldk = kthr->stack_page;
 	struct process_states *new = malloc(sizeof(struct process_states));
 	new->page = ptr;
 	new->image = process->image;
