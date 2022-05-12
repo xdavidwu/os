@@ -1,3 +1,4 @@
+#include "aarch64/vmem.h"
 #include "errno.h"
 #include "exceptions.h"
 #include "kio.h"
@@ -160,7 +161,7 @@ void page_free(void *page) {
 }
 
 void page_alloc_preinit(void *end) {
-	page_base = (void *)((uint64_t)(prepage_heap + (24 * 1024 * 1024) + PAGE_UNIT - 1) / PAGE_UNIT * PAGE_UNIT);
+	page_base = (void *)((uint64_t)(prepage_heap - HIGH_MEM_OFFSET + (24 * 1024 * 1024) + PAGE_UNIT - 1) / PAGE_UNIT * PAGE_UNIT);
 	page_buddies_sz = (end - page_base) / PAGE_UNIT;
 	page_buddies = prepage_malloc(page_buddies_sz * sizeof(struct page_buddy));
 	for (int a = 0; a < page_buddies_sz; a++) {
