@@ -7,17 +7,17 @@ loop:
 	b loop
 cpu1:
 	bl el1
-	ldr x0, =0x80100010
-	msr tcr_el1, x0
-	mov x0, 0b0000000001000100
-	msr mair_el1, x0
-	adr x0, pgd
-	msr ttbr0_el1, x0
-	msr ttbr1_el1, x0
-	mov x0, 1
-	msr sctlr_el1, x0
-	ldr x0, =rest
-	br x0
+	ldr x1, =0x80100010
+	msr tcr_el1, x1
+	mov x1, 0b0000000001000100
+	msr mair_el1, x1
+	adr x1, pgd
+	msr ttbr0_el1, x1
+	msr ttbr1_el1, x1
+	mov x1, 1
+	msr sctlr_el1, x1
+	ldr x2, =rest
+	br x2
 rest:
 	ldr x1, =_start
 	mov sp, x1
@@ -27,7 +27,9 @@ clear_bss:
 	str xzr, [x1], #8
 	cmp x1, x2
 	blo clear_bss
-	ldr x1, =fdt
+	ldr x1, =0xffff000000000000
+	add x0, x0, x1
+	adr x1, fdt
 	str x0, [x1]
 	ldr x1, =__prepage_heap
 	ldr x2, =prepage_heap
