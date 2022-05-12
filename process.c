@@ -30,6 +30,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->image->page = ptr;
 	process->image->size = image_size;
 	process->image->ref = 1;
+	ptr += HIGH_MEM_OFFSET;
 	while (image_size--) {
 		*ptr++ = *image++;
 	}
@@ -62,6 +63,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	process->image->page = ptr;
 	process->image->size = image_size;
 	process->image->ref = 1;
+	ptr += HIGH_MEM_OFFSET;
 	while (image_size--) {
 		*ptr++ = *image++;
 	}
@@ -106,6 +108,8 @@ int process_dup() {
 		states->prev = runq;
 	}
 	register int sz = PAGE_UNIT;
+	ptr += HIGH_MEM_OFFSET;
+	old += HIGH_MEM_OFFSET;
 	while (sz--) {
 		*ptr++ = *old++;
 	}
