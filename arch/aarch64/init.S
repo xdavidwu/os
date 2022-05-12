@@ -19,6 +19,7 @@ cpu1:
 	ldr x2, =rest
 	br x2
 rest:
+	msr ttbr0_el1, xzr
 	ldr x1, =_start
 	mov sp, x1
 	ldr x1, =__bss_start
