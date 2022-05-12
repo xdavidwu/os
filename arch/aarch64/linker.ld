@@ -1,6 +1,6 @@
 SECTIONS
 {
-  . = 0x80000;
+  . = 0xffff000000000000 + 0x80000;
   .text : { *(.text) }
   . = ALIGN(8);
   .rodata : { *(.rodata) }

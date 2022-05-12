@@ -29,7 +29,7 @@ uint64_t __attribute__((aligned(4096))) pud[] = {
 //
 // FIXME: GCC-ism?
 uint64_t __attribute__((aligned(4096))) pgd[] = {
-	(uint64_t)pud + PD_TABLE,
+	(uint64_t)pud - HIGH_MEM_OFFSET + PD_TABLE,
 };
 
 static void kpu32x(uint32_t val) {
