@@ -11,7 +11,7 @@
 extern void exec_user(void *stack, void *pc, void *pagetable);
 
 static void exec_wrap(struct process_states *states) {
-	exec_user(states->page + PAGE_UNIT, states->image->page, states->pagetable);
+	exec_user(states->page + PAGE_UNIT, 0, states->pagetable);
 }
 
 extern int kthread_dup(struct kthread_states *to, void *basek, void *newk,
@@ -45,7 +45,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->signal_stack = page_alloc(1);
 	process->in_signal = false;
 	process->pagetable = pagetable_new();
-	pagetable_insert_range(process->pagetable, process->image->page, process->image->page, 1 << page_ord);
+	pagetable_insert_range(process->pagetable, process->image->page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, process->page, process->page, 1);
 	pagetable_insert_range(process->pagetable, process->signal_stack, process->signal_stack, 1);
 	return kthread_create((void (*)(void *))exec_wrap, process);
@@ -75,10 +75,10 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	while (image_size--) {
 		*ptr++ = *image++;
 	}
-	pagetable_insert_range(process->pagetable, process->image->page, process->image->page, page_ord);
+	pagetable_insert_range(process->pagetable, process->image->page, 0, page_ord);
 	pagetable_insert_range(process->pagetable, process->page, process->page, 1);
 	pagetable_insert_range(process->pagetable, process->signal_stack, process->signal_stack, 1);
-	exec_user(process->page + PAGE_UNIT, process->image->page, process->pagetable);
+	exec_user(process->page + PAGE_UNIT, 0, process->pagetable);
 }
 
 extern int pid;
@@ -107,7 +107,7 @@ int process_dup() {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
 	new->pagetable = pagetable_new();
-	pagetable_insert_range(new->pagetable, new->image->page, new->image->page, (new->image->size + PAGE_UNIT - 1) / PAGE_UNIT);
+	pagetable_insert_range(new->pagetable, new->image->page, 0, (new->image->size + PAGE_UNIT - 1) / PAGE_UNIT);
 	pagetable_insert_range(new->pagetable, new->page, new->page, 1);
 	pagetable_insert_range(new->pagetable, new->signal_stack, new->signal_stack, 1);
 	__asm__ ("msr DAIFSet, 0xf\nisb");
