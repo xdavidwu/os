@@ -11,7 +11,7 @@
 extern void exec_user(void *stack, void *pc, void *pagetable);
 
 static void exec_wrap(struct process_states *states) {
-	exec_user(states->page + PAGE_UNIT, 0, states->pagetable);
+	exec_user((void *)0xfffffffff000, 0, states->pagetable);
 }
 
 extern int kthread_dup(struct kthread_states *to, void *basek, void *newk,
@@ -35,7 +35,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	while (image_size--) {
 		*ptr++ = *image++;
 	}
-	process->page = page_alloc(1);
+	process->page = page_alloc(2);
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		process->signal_handlers[a] = NULL;
 	}
@@ -46,7 +46,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->in_signal = false;
 	process->pagetable = pagetable_new();
 	pagetable_insert_range(process->pagetable, process->image->page, 0, 1 << page_ord);
-	pagetable_insert_range(process->pagetable, process->page, process->page, 1);
+	pagetable_insert_range(process->pagetable, process->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(process->pagetable, process->signal_stack, process->signal_stack, 1);
 	return kthread_create((void (*)(void *))exec_wrap, process);
 }
@@ -76,7 +76,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 		*ptr++ = *image++;
 	}
 	pagetable_insert_range(process->pagetable, process->image->page, 0, page_ord);
-	pagetable_insert_range(process->pagetable, process->page, process->page, 1);
+	pagetable_insert_range(process->pagetable, process->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(process->pagetable, process->signal_stack, process->signal_stack, 1);
 	exec_user(process->page + PAGE_UNIT, 0, process->pagetable);
 }
@@ -89,7 +89,7 @@ int process_dup() {
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
 	process->image->ref++;
-	register uint8_t *ptr = page_alloc(1), *old = process->page, *oldk = kthr->stack_page + HIGH_MEM_OFFSET;
+	register uint8_t *ptr = page_alloc(4), *old = process->page, *oldk = kthr->stack_page + HIGH_MEM_OFFSET;
 	struct process_states *new = malloc(sizeof(struct process_states));
 	new->page = ptr;
 	new->image = process->image;
@@ -108,7 +108,7 @@ int process_dup() {
 	}
 	new->pagetable = pagetable_new();
 	pagetable_insert_range(new->pagetable, new->image->page, 0, (new->image->size + PAGE_UNIT - 1) / PAGE_UNIT);
-	pagetable_insert_range(new->pagetable, new->page, new->page, 1);
+	pagetable_insert_range(new->pagetable, new->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(new->pagetable, new->signal_stack, new->signal_stack, 1);
 	__asm__ ("msr DAIFSet, 0xf\nisb");
 	int mpid = pid++;
@@ -124,7 +124,7 @@ int process_dup() {
 		states->next = NULL;
 		states->prev = runq;
 	}
-	register int sz = PAGE_UNIT;
+	register int sz = PAGE_UNIT * 4;
 	ptr += HIGH_MEM_OFFSET;
 	old += HIGH_MEM_OFFSET;
 	while (sz--) {
@@ -137,7 +137,7 @@ int process_dup() {
 	}
 	struct trapframe *new_trap = (struct trapframe *)((uint8_t *)process->trapframe - oldk + ptrk);
 	new_trap->ttbr0_el1 = (uint64_t)new->pagetable;
-	return kthread_dup(states, kthr->stack_page, states->stack_page, process->page, new->page, mpid);
+	return kthread_dup(states, kthr->stack_page, states->stack_page, 0, 0, mpid);
 }
 
 void process_exit() {
