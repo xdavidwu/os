@@ -14,8 +14,7 @@ static void exec_wrap(struct process_states *states) {
 	exec_user(states->pagetable);
 }
 
-extern int kthread_dup(struct kthread_states *to, void *basek, void *newk,
-	void *baseu, void *newu, int ret);
+extern int kthread_dup(struct kthread_states *to, void *basek, void *newk, int ret);
 
 extern void sigkill_default();
 
@@ -137,7 +136,7 @@ int process_dup() {
 	}
 	struct trapframe *new_trap = (struct trapframe *)((uint8_t *)process->trapframe - oldk + ptrk);
 	new_trap->ttbr0_el1 = (uint64_t)new->pagetable;
-	return kthread_dup(states, kthr->stack_page, states->stack_page, 0, 0, mpid);
+	return kthread_dup(states, kthr->stack_page, states->stack_page, mpid);
 }
 
 void process_exit() {

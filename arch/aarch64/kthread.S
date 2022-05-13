@@ -41,10 +41,8 @@ kthread_dup:
 	sub x6, x6, x1
 	add x6, x6, x2
 	mrs x7, sp_el0
-	sub x7, x7, x3
-	add x7, x7, x4
 	stp x6, x7, [x0, 16 * 7]
-	mov x0, x5
+	mov x0, x3
 	isb
 	msr DAIFClr, 0xf
 	ret
