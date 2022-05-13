@@ -1,4 +1,5 @@
 #include "aarch64/vmem.h"
+#include "exceptions.h"
 #include "page.h"
 #include "vmem.h"
 #include <stdint.h>
@@ -59,4 +60,16 @@ static void pagetable_destroy_layer(uint64_t *pagetable, int layer) {
 
 void pagetable_destroy(uint64_t *pagetable) {
 	pagetable_destroy_layer(pagetable, 4);
+}
+
+void *pagetable_translate(uint64_t *pagetable, void *addr) {
+	uint64_t addru = (uint64_t)addr;
+	uint64_t res;
+
+	DISABLE_INTERRUPTS();
+	__asm__ ("dsb ish\nmsr ttbr0_el1, %0\ntlbi vmalle1is\ndsb ish\nisb" : : "r" (pagetable));
+	__asm__ ("at s1e0r, %0" : : "r" (addru));
+	__asm__ ("mrs %0, par_el1" : "=r" (res));
+	ENABLE_INTERRUPTS();
+	return (void *)((res & PD_ADDR_MASK) | ((uint64_t)addr & ((1 << 12) - 1)));
 }

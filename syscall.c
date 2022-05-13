@@ -9,6 +9,7 @@
 #include "process.h"
 #include "string.h"
 #include "syscall.h"
+#include "vmem.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -120,6 +121,14 @@ static reg_t sigreturn() {
 	return 0;
 }
 
+static reg_t mbox_call_user(reg_t rchannel, reg_t raddr) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	void *pa = pagetable_translate(process->pagetable, (void *)raddr);
+	return mbox_call(rchannel, pa);
+}
+
 static reg_t (*syscalls[])(reg_t, reg_t) = {
 	getpid,
 	cread,
@@ -127,7 +136,7 @@ static reg_t (*syscalls[])(reg_t, reg_t) = {
 	exec,
 	(reg_t (*)(reg_t, reg_t))process_dup,
 	(reg_t (*)(reg_t, reg_t))process_exit,
-	(reg_t (*)(reg_t, reg_t))mbox_call,
+	mbox_call_user,
 	skill,
 	signal,
 	kill,
