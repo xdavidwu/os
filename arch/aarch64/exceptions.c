@@ -172,12 +172,13 @@ void handle_sync(struct trapframe *trapframe) {
 	__asm__ ("mrs %0, esr_el1" : "=r" (esr_el1));
 
 	if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_SVC_AARCH64) {
-		__asm__ ("isb\nmsr DAIFClr, 0xf");
-		syscall(trapframe);
-		__asm__ ("msr DAIFSet, 0xf\nisb");
 		struct kthread_states *states;
 		__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
 		struct process_states *process = states->data;
+		process->trapframe = trapframe;
+		__asm__ ("isb\nmsr DAIFClr, 0xf");
+		syscall(trapframe);
+		__asm__ ("msr DAIFSet, 0xf\nisb");
 		if (process->pending_signals && !process->in_signal) {
 			process->in_signal = true;
 			for (int i = 1; i <= SIGNAL_MAX; i++) {

@@ -25,6 +25,7 @@ struct process_states {
 	uint64_t presignal_sp;
 	void *signal_stack;
 	bool in_signal;
+	struct trapframe *trapframe;
 };
 
 int process_exec(uint8_t *image, size_t image_size);
