@@ -72,7 +72,7 @@ void register_task(void (*func)(void *), void *data, int prio) {
 	nested_tasks[irq_lvl].length++;
 }
 
-void handle_irq(bool was_el0) {
+void handle_irq(void *was_el0) {
 	irq_lvl++;
 	struct tasks tasks_local[TASKS_MAX + 1]; // + 1 for sen
 	nested_tasks[irq_lvl].tasks = tasks_local;
