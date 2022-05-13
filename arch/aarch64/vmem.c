@@ -16,7 +16,14 @@ uint64_t *pagetable_new() {
 	return res;
 }
 
-void pagetable_insert(uint64_t *pagetable, void *dst, void *src) {
+void pagetable_insert(uint64_t *pagetable, int permission, void *dst, void *src) {
+	uint64_t flags = 0;
+	if ((permission & PAGETABLE_USER_W) != PAGETABLE_USER_W) {
+		flags |= PD_RO;
+	}
+	if ((permission & PAGETABLE_USER_X) != PAGETABLE_USER_X) {
+		flags |= PD_USER_NX;
+	}
 	uint64_t *pgd = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
 	int index = ADDR_PGD_IDX((uint64_t)(src));
 	if ((pgd[index] & PD_TYPE_MASK) != PD_TABLE) {
@@ -34,12 +41,12 @@ void pagetable_insert(uint64_t *pagetable, void *dst, void *src) {
 	}
 	uint64_t *pte = (uint64_t *)((pmd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
 	index = ADDR_PTE_IDX((uint64_t)(src));
-	pte[index] = (uint64_t)dst | PD_ACCESS | PD_USER | (MAIR_IDX_NORMAL_NOCACHE << 2) | PD_TABLE;
+	pte[index] = (uint64_t)dst | PD_ACCESS | PD_USER | (MAIR_IDX_NORMAL_NOCACHE << 2) | PD_TABLE | flags;
 }
 
-void pagetable_insert_range(uint64_t *pagetable, void *dst, void *src, int length) {
+void pagetable_insert_range(uint64_t *pagetable, int permission, void *dst, void *src, int length) {
 	for (int a = 0; a < length; a++) {
-		pagetable_insert(pagetable, dst, src);
+		pagetable_insert(pagetable, permission, dst, src);
 		dst += PAGE_UNIT;
 		src += PAGE_UNIT;
 	}

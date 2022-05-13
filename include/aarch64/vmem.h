@@ -6,6 +6,8 @@
 #define PD_BLOCK	0b01
 #define PD_ACCESS	(1 << 10)
 #define PD_USER	(1 << 6)
+#define PD_RO	(1 << 7)
+#define PD_USER_NX	(1ULL << 54)
 #define PD_ADDR_MASK	(((1ULL << 48) - 1) ^ ((1ULL << 12) - 1))
 
 #define MAIR_IDX_DEVICE_nGnRnE	0
