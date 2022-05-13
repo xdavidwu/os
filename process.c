@@ -8,10 +8,10 @@
 #include "stdlib.h"
 #include <stdint.h>
 
-extern void exec_user(void *stack, void *pc, void *pagetable);
+extern void exec_user(void *pagetable);
 
 static void exec_wrap(struct process_states *states) {
-	exec_user((void *)0xfffffffff000, 0, states->pagetable);
+	exec_user(states->pagetable);
 }
 
 extern int kthread_dup(struct kthread_states *to, void *basek, void *newk,
@@ -78,7 +78,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	pagetable_insert_range(process->pagetable, process->image->page, 0, page_ord);
 	pagetable_insert_range(process->pagetable, process->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(process->pagetable, process->signal_stack, process->signal_stack, 1);
-	exec_user(process->page + PAGE_UNIT, 0, process->pagetable);
+	exec_user(process->pagetable);
 }
 
 extern int pid;
