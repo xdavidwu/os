@@ -153,6 +153,7 @@ void process_exit() {
 	}
 	page_free(process->signal_stack);
 	page_free(process->page);
+	pagetable_destroy(process->pagetable);
 	free(process);
 	kthread_exit();
 }
