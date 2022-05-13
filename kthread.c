@@ -49,7 +49,7 @@ int kthread_create(void (*func)(void *), void *data) {
 void kthread_loop() {
 	struct kthread_states *this = malloc(sizeof(struct kthread_states));
 	this->pid = 0;
-	__asm__ ("msr tpidr_el1, %0" : "=r" (this));
+	__asm__ ("msr tpidr_el1, %0" : : "r" (this));
 	uint64_t freq;
 	asm("mrs %0, cntfrq_el0" : "=r" (freq));
 	uint64_t enable = 1;
