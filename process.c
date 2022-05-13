@@ -17,6 +17,7 @@ static void exec_wrap(struct process_states *states) {
 extern int kthread_dup(struct kthread_states *to, void *basek, void *newk, int ret);
 
 extern void sigkill_default();
+extern void pagetable_populate_device(uint64_t *pagetable);
 
 int process_exec(uint8_t *image, size_t image_size) {
 	struct process_states *process = malloc(sizeof(struct process_states));
@@ -47,6 +48,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	pagetable_insert_range(process->pagetable, process->image->page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, process->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(process->pagetable, process->signal_stack, process->signal_stack, 1);
+	pagetable_populate_device(process->pagetable);
 	return kthread_create((void (*)(void *))exec_wrap, process);
 }
 
@@ -77,6 +79,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	pagetable_insert_range(process->pagetable, process->image->page, 0, page_ord);
 	pagetable_insert_range(process->pagetable, process->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(process->pagetable, process->signal_stack, process->signal_stack, 1);
+	pagetable_populate_device(process->pagetable);
 	exec_user(process->pagetable);
 }
 
@@ -109,6 +112,7 @@ int process_dup() {
 	pagetable_insert_range(new->pagetable, new->image->page, 0, (new->image->size + PAGE_UNIT - 1) / PAGE_UNIT);
 	pagetable_insert_range(new->pagetable, new->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(new->pagetable, new->signal_stack, new->signal_stack, 1);
+	pagetable_populate_device(new->pagetable);
 	__asm__ ("msr DAIFSet, 0xf\nisb");
 	int mpid = pid++;
 	states->pid = mpid;

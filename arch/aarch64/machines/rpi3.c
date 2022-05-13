@@ -8,6 +8,7 @@
 #include "page.h"
 #include "string.h"
 #include "timer.h"
+#include "vmem.h"
 #include <stdint.h>
 
 uint8_t *initrd_start = (uint8_t *) 0x8000000;
@@ -123,4 +124,23 @@ void machine_init() {
 	page_alloc_init();
 	malloc_init();
 	main();
+}
+
+void pagetable_populate_device(uint64_t *pagetable) {
+	uint64_t src = 0x3c000000;
+	uint64_t *pgd = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
+	int index = ADDR_PGD_IDX((uint64_t)(src));
+	if ((pgd[index] & PD_TYPE_MASK) != PD_TABLE) {
+		pgd[index] = (uint64_t)pagetable_new() | PD_TABLE;
+	}
+	uint64_t *pud = (uint64_t *)((pgd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PUD_IDX((uint64_t)(src));
+	if ((pud[index] & PD_TYPE_MASK) != PD_TABLE) {
+		pud[index] = (uint64_t)pagetable_new() | PD_TABLE;
+	}
+	uint64_t *pmd = (uint64_t *)((pud[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	for (int i = src; i <= 0x3fe00000; i += 0x200000) {
+		index = ADDR_PMD_IDX((uint64_t)(i));
+		pmd[index] = i | PD_USER | PD_ACCESS | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_BLOCK;
+	}
 }
