@@ -1,6 +1,7 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -23,6 +24,7 @@ struct process_states {
 	void (*signal_handlers[SIGNAL_MAX + 1])(int);
 	uint64_t presignal_sp;
 	void *signal_stack;
+	bool in_signal;
 };
 
 int process_exec(uint8_t *image, size_t image_size);

@@ -147,22 +147,21 @@ void handle_irq(bool was_el0) {
 		struct kthread_states *states;
 		__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
 		struct process_states *process = states->data;
-		if (process->pending_signals && !process->signal_stack) {
-			process->signal_stack = page_alloc(1);
+		if (process->pending_signals && !process->in_signal) {
+			process->in_signal = true;
 			for (int i = 1; i <= SIGNAL_MAX; i++) {
 				if ((process->pending_signals & (1 << i)) == (1 << i)) {
 					process->pending_signals ^= (1 << i);
 					if (process->signal_handlers[i]) {
-						exec_signal_handler(process->signal_stack,
+						exec_signal_handler(process->signal_stack + PAGE_UNIT,
 							process->signal_handlers[i],
 							&process->presignal_sp, i);
 					}
 					__asm__ ("msr DAIFSet, 0xf\nisb");
 				}
 			}
-			page_free(process->signal_stack);
+			process->in_signal = false;
 			__asm__ ("msr DAIFSet, 0xf\nisb");
-			process->signal_stack = NULL;
 		}
 	}
 }
@@ -179,22 +178,21 @@ void handle_sync(struct trapframe *trapframe) {
 		struct kthread_states *states;
 		__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
 		struct process_states *process = states->data;
-		if (process->pending_signals && !process->signal_stack) {
-			process->signal_stack = page_alloc(1);
+		if (process->pending_signals && !process->in_signal) {
+			process->in_signal = true;
 			for (int i = 1; i <= SIGNAL_MAX; i++) {
 				if ((process->pending_signals & (1 << i)) == (1 << i)) {
 					process->pending_signals ^= (1 << i);
 					if (process->signal_handlers[i]) {
-						exec_signal_handler(process->signal_stack,
+						exec_signal_handler(process->signal_stack + PAGE_UNIT,
 							process->signal_handlers[i],
 							&process->presignal_sp, i);
 					}
 					__asm__ ("msr DAIFSet, 0xf\nisb");
 				}
 			}
-			page_free(process->signal_stack);
+			process->in_signal = false;
 			__asm__ ("msr DAIFSet, 0xf\nisb");
-			process->signal_stack = NULL;
 		}
 	} else {
 		handle_unimplemented();

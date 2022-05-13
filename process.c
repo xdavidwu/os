@@ -41,7 +41,8 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->signal_handlers[SIGKILL] = sigkill_default;
 	process->pending_signals = 0;
 	process->presignal_sp = 0;
-	process->signal_stack = NULL;
+	process->signal_stack = page_alloc(1);
+	process->in_signal = false;
 	return kthread_create((void (*)(void *))exec_wrap, process);
 }
 
@@ -89,7 +90,8 @@ int process_dup() {
 	// TODO handle fork from signal handlers?
 	new->pending_signals = process->pending_signals;
 	new->presignal_sp = 0;
-	new->signal_stack = NULL;
+	new->signal_stack = page_alloc(1);
+	new->in_signal = false;
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
