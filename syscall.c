@@ -1,4 +1,5 @@
 #include "aarch64/registers.h"
+#include "aarch64/vmem.h"
 #include "bcm2835_mailbox.h"
 #include "cpio.h"
 #include "errno.h"
@@ -19,7 +20,10 @@ static reg_t syscall_reserved() {
 }
 
 static reg_t cwrite(reg_t rbuf, reg_t rsize) {
-	const char *buf = (const char *)rbuf;
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	const char *buf = pagetable_translate(process->pagetable, (void *)rbuf) + HIGH_MEM_OFFSET;
 	size_t size = (size_t) rsize;
 	for (int a = 0; a < size; a++) {
 		kputc(buf[a]);
@@ -28,7 +32,10 @@ static reg_t cwrite(reg_t rbuf, reg_t rsize) {
 }
 
 static reg_t cread(reg_t rbuf, reg_t rsize) {
-	char *buf = (char *)rbuf;
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	char *buf = pagetable_translate(process->pagetable, (void *)rbuf) + HIGH_MEM_OFFSET;
 	size_t size = (size_t) rsize;
 	for (int a = 0; a < size; a++) {
 		buf[a] = kgetc();
