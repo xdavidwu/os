@@ -14,6 +14,7 @@ static void *page_base;
 static struct page_buddy {
 	uint8_t status;
 	bool reserved;
+	uint16_t ref;
 	struct page_buddy *next, *prev;
 } *page_buddies;
 
@@ -111,12 +112,22 @@ void *page_alloc(int ord) {
 	return (void *)-ENOMEM;
 }
 
+void page_take(void *page) {
+	int idx = (page - page_base) / PAGE_UNIT;
+	page_buddies[idx].ref++;
+	return;
+}
+
 void page_free(void *page) {
 	if (!page) {
 		return;
 	}
 	int idx = (page - page_base) / PAGE_UNIT;
 	DISABLE_INTERRUPTS();
+	if (page_buddies[idx].ref) {
+		page_buddies[idx].ref--;
+		return;
+	}
 	int ord = page_buddies[idx].status;
 	page_buddies[idx].status = BUDDY_IS_BUDDY;
 	page_buddies[idx].prev = NULL;
@@ -166,6 +177,7 @@ void page_alloc_preinit(void *end) {
 	page_buddies = prepage_malloc(page_buddies_sz * sizeof(struct page_buddy));
 	for (int a = 0; a < page_buddies_sz; a++) {
 		page_buddies[a].status = BUDDY_IS_BUDDY;
+		page_buddies[a].ref = 0;
 	}
 }
 

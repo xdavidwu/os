@@ -14,12 +14,11 @@ enum {
 struct process_image {
 	void *page;
 	size_t size;
-	int ref;
 };
 
 struct process_states {
 	void *page;
-	struct process_image *image;
+	struct process_image image;
 	uint32_t pending_signals;
 	void (*signal_handlers[SIGNAL_MAX + 1])(int);
 	uint64_t presignal_sp;

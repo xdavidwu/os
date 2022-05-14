@@ -21,16 +21,14 @@ extern void pagetable_populate_device(uint64_t *pagetable);
 
 int process_exec(uint8_t *image, size_t image_size) {
 	struct process_states *process = malloc(sizeof(struct process_states));
-	process->image = malloc(sizeof(struct process_image));
 	int page_ord = 1;
 	int pages = (image_size + PAGE_UNIT - 1) / PAGE_UNIT;
 	while (pages > 1 << page_ord) {
 		page_ord++;
 	}
 	uint8_t *ptr = page_alloc(page_ord);
-	process->image->page = ptr;
-	process->image->size = image_size;
-	process->image->ref = 1;
+	process->image.page = ptr;
+	process->image.size = image_size;
 	ptr += HIGH_MEM_OFFSET;
 	while (image_size--) {
 		*ptr++ = *image++;
@@ -45,7 +43,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->signal_stack = page_alloc(1);
 	process->in_signal = false;
 	process->pagetable = pagetable_new();
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image->page, 0, 1 << page_ord);
+	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, process->signal_stack, 1);
 	pagetable_populate_device(process->pagetable);
@@ -56,27 +54,22 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	struct kthread_states *kthr;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
-	if (!--process->image->ref) {
-		page_free(process->image->page);
-		free(process->image);
-	}
+	page_free(process->image.page);
 	pagetable_destroy(process->pagetable);
 	process->pagetable = pagetable_new();
-	process->image = malloc(sizeof(struct process_image));
 	int page_ord = 1;
 	int pages = (image_size + PAGE_UNIT - 1) / PAGE_UNIT;
 	while (pages > 1 << page_ord) {
 		page_ord++;
 	}
 	uint8_t *ptr = page_alloc(page_ord);
-	process->image->page = ptr;
-	process->image->size = image_size;
-	process->image->ref = 1;
+	process->image.page = ptr;
+	process->image.size = image_size;
 	ptr += HIGH_MEM_OFFSET;
 	while (image_size--) {
 		*ptr++ = *image++;
 	}
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image->page, 0, page_ord);
+	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, process->signal_stack, 1);
 	pagetable_populate_device(process->pagetable);
@@ -90,7 +83,7 @@ int process_dup() {
 	struct kthread_states *kthr;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
-	process->image->ref++;
+	page_take(process->image.page);
 	register uint8_t *ptr = page_alloc(4), *old = process->page, *oldk = kthr->stack_page + HIGH_MEM_OFFSET;
 	struct process_states *new = malloc(sizeof(struct process_states));
 	new->page = ptr;
@@ -109,7 +102,7 @@ int process_dup() {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
 	new->pagetable = pagetable_new();
-	pagetable_insert_range(new->pagetable, PAGETABLE_USER_X, new->image->page, 0, (new->image->size + PAGE_UNIT - 1) / PAGE_UNIT);
+	pagetable_insert_range(new->pagetable, PAGETABLE_USER_X, new->image.page, 0, (new->image.size + PAGE_UNIT - 1) / PAGE_UNIT);
 	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->page, (void *)0xffffffffb000, 4);
 	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->signal_stack, new->signal_stack, 1);
 	pagetable_populate_device(new->pagetable);
@@ -147,10 +140,7 @@ void process_exit() {
 	struct kthread_states *kthr;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
-	if (!--process->image->ref) {
-		page_free(process->image->page);
-		free(process->image);
-	}
+	page_free(process->image.page);
 	page_free(process->signal_stack);
 	page_free(process->page);
 	pagetable_destroy(process->pagetable);
