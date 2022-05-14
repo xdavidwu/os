@@ -114,10 +114,10 @@ void *page_alloc(int ord) {
 
 void page_take(void *page) {
 	int idx = (page - page_base) / PAGE_UNIT;
+	page_buddies[idx].ref++;
 	if (page_buddies[idx].status == BUDDY_IS_BUDDY) {
 		return;
 	}
-	page_buddies[idx].ref++;
 	return;
 }
 
@@ -127,11 +127,11 @@ void page_free(void *page) {
 	}
 	int idx = (page - page_base) / PAGE_UNIT;
 	DISABLE_INTERRUPTS();
-	if (page_buddies[idx].status == BUDDY_IS_BUDDY) {
-		return;
-	}
 	if (page_buddies[idx].ref) {
 		page_buddies[idx].ref--;
+		return;
+	}
+	if (page_buddies[idx].status == BUDDY_IS_BUDDY) {
 		return;
 	}
 	int ord = page_buddies[idx].status;
