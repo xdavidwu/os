@@ -40,12 +40,11 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->signal_handlers[SIGKILL] = sigkill_default;
 	process->pending_signals = 0;
 	process->presignal_sp = 0;
-	process->signal_stack = page_alloc(1);
 	process->in_signal = false;
 	process->pagetable = pagetable_new();
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, (void *)0xfffffffff000, 1);
+	pagetable_ondemand(process->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);
 	pagetable_populate_device(process->pagetable);
 	return kthread_create((void (*)(void *))exec_wrap, process);
 }
@@ -71,7 +70,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	}
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, (void *)0xfffffffff000, 1);
+	pagetable_ondemand(process->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);
 	pagetable_populate_device(process->pagetable);
 	exec_user(process->pagetable);
 }
@@ -96,7 +95,6 @@ int process_dup() {
 	// TODO handle fork from signal handlers?
 	new->pending_signals = process->pending_signals;
 	new->presignal_sp = 0;
-	new->signal_stack = page_alloc(1);
 	new->in_signal = false;
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		new->signal_handlers[a] = process->signal_handlers[a];
@@ -104,7 +102,7 @@ int process_dup() {
 	new->pagetable = pagetable_new();
 	pagetable_insert_range(new->pagetable, PAGETABLE_USER_X, new->image.page, 0, (new->image.size + PAGE_UNIT - 1) / PAGE_UNIT);
 	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->page, (void *)0xffffffffb000, 4);
-	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->signal_stack, (void *)0xfffffffff000, 1);
+	pagetable_ondemand(new->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);
 	pagetable_populate_device(new->pagetable);
 	__asm__ ("msr DAIFSet, 0xf\nisb");
 	int mpid = pid++;

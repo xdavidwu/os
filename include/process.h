@@ -22,7 +22,6 @@ struct process_states {
 	uint32_t pending_signals;
 	void (*signal_handlers[SIGNAL_MAX + 1])(int);
 	uint64_t presignal_sp;
-	void *signal_stack;
 	bool in_signal;
 	struct trapframe *trapframe;
 	uint64_t *pagetable;

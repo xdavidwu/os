@@ -5,6 +5,7 @@
 #include "page.h"
 #include "process.h"
 #include "syscall.h"
+#include "vmem.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -20,7 +21,7 @@ static void kputssync(const char *str) {
 	}
 }
 
-static void kput64x(uint64_t val) {
+static void kput64xsync(uint64_t val) {
 	char hexbuf[17];
 	hexbuf[16] = '\0';
 	for (int i = 0; i < 16; i++) {
@@ -31,6 +32,17 @@ static void kput64x(uint64_t val) {
 	kputssync(hexbuf);
 }
 
+static void kput64x(uint64_t val) {
+	char hexbuf[17];
+	hexbuf[16] = '\0';
+	for (int i = 0; i < 16; i++) {
+		int dig = val & 0xf;
+		hexbuf[15 - i] = (dig > 9 ? 'a' - 10 : '0') + dig;
+		val >>= 4;
+	}
+	kputs(hexbuf);
+}
+
 void handle_unimplemented() {
 	in_exception = 1;
 	uint64_t spsr_el1, elr_el1, esr_el1;
@@ -38,11 +50,11 @@ void handle_unimplemented() {
 	__asm__ ("mrs %0, elr_el1" : "=r" (elr_el1));
 	__asm__ ("mrs %0, esr_el1" : "=r" (esr_el1));
 	kputssync("Unimplemeted exception:\nspsr_el1:\t");
-	kput64x(spsr_el1);
+	kput64xsync(spsr_el1);
 	kputssync("\nelr_el1:\t");
-	kput64x(elr_el1);
+	kput64xsync(elr_el1);
 	kputssync("\nesr_el1:\t");
-	kput64x(esr_el1);
+	kput64xsync(esr_el1);
 	kputssync("\n");
 	in_exception = 0;
 }
@@ -169,13 +181,14 @@ void handle_irq(void *was_el0) {
 
 
 void handle_sync(struct trapframe *trapframe) {
-	uint64_t esr_el1;
+	uint64_t esr_el1, far_el1;
 	__asm__ ("mrs %0, esr_el1" : "=r" (esr_el1));
+	__asm__ ("mrs %0, far_el1" : "=r" (far_el1));
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
 
 	if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_SVC_AARCH64) {
-		struct kthread_states *states;
-		__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
-		struct process_states *process = states->data;
 		process->trapframe = trapframe;
 		__asm__ ("isb\nmsr DAIFClr, 0xf");
 		syscall(trapframe);
@@ -197,6 +210,17 @@ void handle_sync(struct trapframe *trapframe) {
 			process->in_signal = false;
 			__asm__ ("msr DAIFSet, 0xf\nisb");
 		}
+	} else if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_DA_EL0 &&
+			(esr_el1 & ESR_EL1_EC_DA_DFSC_MASK) == ESR_EL1_EC_DA_DFSC_ACCESS_L3) {
+		far_el1 /= PAGE_UNIT;
+		far_el1 *= PAGE_UNIT;
+		kputs("Page demand: ");
+		kput64x(far_el1);
+		kputs("\n");
+		__asm__ ("isb\nmsr DAIFClr, 0xf");
+		void *page = page_alloc(1);
+		pagetable_demand(process->pagetable, page, (void *)far_el1);
+		__asm__ ("msr DAIFSet, 0xf\nisb");
 	} else {
 		handle_unimplemented();
 		while (1);

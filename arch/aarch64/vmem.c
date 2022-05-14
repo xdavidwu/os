@@ -52,6 +52,53 @@ void pagetable_insert_range(uint64_t *pagetable, int permission, void *dst, void
 	}
 }
 
+void pagetable_ondemand(uint64_t *pagetable, int permission, void *src) {
+	uint64_t flags = 0;
+	if ((permission & PAGETABLE_USER_W) != PAGETABLE_USER_W) {
+		flags |= PD_RO;
+	}
+	if ((permission & PAGETABLE_USER_X) != PAGETABLE_USER_X) {
+		flags |= PD_USER_NX;
+	}
+	uint64_t *pgd = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
+	int index = ADDR_PGD_IDX((uint64_t)(src));
+	if ((pgd[index] & PD_TYPE_MASK) != PD_TABLE) {
+		pgd[index] = (uint64_t)pagetable_new() | PD_TABLE;
+	}
+	uint64_t *pud = (uint64_t *)((pgd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PUD_IDX((uint64_t)(src));
+	if ((pud[index] & PD_TYPE_MASK) != PD_TABLE) {
+		pud[index] = (uint64_t)pagetable_new() | PD_TABLE;
+	}
+	uint64_t *pmd = (uint64_t *)((pud[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PMD_IDX((uint64_t)(src));
+	if ((pmd[index] & PD_TYPE_MASK) != PD_TABLE) {
+		pmd[index] = (uint64_t)pagetable_new() | PD_TABLE;
+	}
+	uint64_t *pte = (uint64_t *)((pmd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PTE_IDX((uint64_t)(src));
+	pte[index] = PD_USER | (MAIR_IDX_NORMAL_NOCACHE << 2) | PD_TABLE | flags;
+}
+
+void pagetable_ondemand_range(uint64_t *pagetable, int permission, void *src, int length) {
+	for (int a = 0; a < length; a++) {
+		pagetable_ondemand(pagetable, permission, src);
+		src += PAGE_UNIT;
+	}
+}
+
+void pagetable_demand(uint64_t *pagetable, void *dst, void *src) {
+	uint64_t *pgd = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
+	int index = ADDR_PGD_IDX((uint64_t)(src));
+	uint64_t *pud = (uint64_t *)((pgd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PUD_IDX((uint64_t)(src));
+	uint64_t *pmd = (uint64_t *)((pud[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PMD_IDX((uint64_t)(src));
+	uint64_t *pte = (uint64_t *)((pmd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PTE_IDX((uint64_t)(src));
+	pte[index] |= ((uint64_t)dst & PD_ADDR_MASK) | PD_ACCESS;
+}
+
 static void pagetable_destroy_layer(uint64_t *pagetable, int layer) {
 	layer--;
 	uint64_t *pa = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
@@ -59,14 +106,18 @@ static void pagetable_destroy_layer(uint64_t *pagetable, int layer) {
 		for (int i = 511; i >= 0; i--) {
 			if ((pa[i] & PD_TYPE_MASK) == PD_TABLE) {
 				pagetable_destroy_layer((uint64_t *)(pa[i] & PD_ADDR_MASK), layer);
-			} else if ((pa[i] & PD_TYPE_MASK) == PD_BLOCK && !(pa[i] & PAGE_STICKY)) {
+			} else if ((pa[i] & PD_TYPE_MASK) == PD_BLOCK &&
+					!(pa[i] & PAGE_STICKY) &&
+					(pa[i] & PD_ACCESS)) {
 				page_free((void *)(pa[i] & PD_ADDR_MASK));
 			}
 
 		}
 	} else {
 		for (int i = 511; i >= 0; i--) {
-			if ((pa[i] & PD_TYPE_MASK) == PD_TABLE && !(pa[i] & PAGE_STICKY)) {
+			if ((pa[i] & PD_TYPE_MASK) == PD_TABLE &&
+					!(pa[i] & PAGE_STICKY) &&
+					(pa[i] & PD_ACCESS)) {
 				page_free((void *)(pa[i] & PD_ADDR_MASK));
 			}
 		}
