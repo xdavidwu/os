@@ -50,7 +50,7 @@ static void kput16x(uint16_t val) {
 	kputs(hexbuf);
 }
 
-void print_status() {
+static void print_status() {
 	for (int a = 0; a <= MAX_ORD; a++) {
 		kputs("ord: ");
 		kput16x(a);
@@ -70,6 +70,7 @@ void print_status() {
 		}
 	}
 }
+
 void *page_alloc(int ord) {
 	DISABLE_INTERRUPTS();
 	for (int a = ord; a <= MAX_ORD; a++) {
