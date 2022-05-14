@@ -122,6 +122,11 @@ void page_take(void *page) {
 	return;
 }
 
+int page_check_ref(void *page) {
+	int idx = (page - page_base) / PAGE_UNIT;
+	return page_buddies[idx].ref;
+}
+
 void page_free(void *page) {
 	if (!page) {
 		return;

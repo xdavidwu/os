@@ -8,6 +8,7 @@ void mem_reserve(void *start, void *end);
 void page_alloc_init();
 void *page_alloc(int ord);
 void page_take(void *page);
+int page_check_ref(void *page);
 void page_free(void *page);
 
 void malloc_init();

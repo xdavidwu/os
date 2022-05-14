@@ -2,6 +2,7 @@
 #include "exceptions.h"
 #include "page.h"
 #include "vmem.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -203,6 +204,10 @@ bool pagetable_copy_page(uint64_t *pagetable, void *src) {
 	void *page_dst = page_alloc(1);
 	if (!(pte[index] & PAGE_COW)) {
 		return false;
+	}
+	if (!page_check_ref(page_src)) {
+		pte[index] &= ~(PD_RO | PAGE_COW);
+		return true;
 	}
 	pte[index] &= ~(PD_ADDR_MASK | PD_RO | PAGE_COW);
 	pte[index] |= ((uint64_t)page_dst & PD_ADDR_MASK) | PD_ACCESS;
