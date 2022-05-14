@@ -218,6 +218,11 @@ void handle_sync(struct trapframe *trapframe) {
 		kput64x(far_el1);
 		kputs("\n");
 		__asm__ ("msr DAIFSet, 0xf\nisb");
+	} else if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_DA_EL0) {
+		process->pending_signals |= (1 << SIGSEGV);
+		kputs("Segmentation fault: ");
+		kput64x(far_el1);
+		kputs("\n");
 	} else {
 		handle_unimplemented();
 		while (1);
