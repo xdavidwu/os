@@ -20,4 +20,7 @@
 #define ADDR_PMD_IDX(x)	(((x) >> 21) & ((1 << 9) - 1))
 #define ADDR_PTE_IDX(x)	(((x) >> 12) & ((1 << 9) - 1))
 
+// not managed, do not free
+#define PAGE_STICKY	(1ULL << 55)
+
 #endif

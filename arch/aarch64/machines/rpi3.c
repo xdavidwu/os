@@ -141,6 +141,6 @@ void pagetable_populate_device(uint64_t *pagetable) {
 	uint64_t *pmd = (uint64_t *)((pud[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
 	for (int i = src; i <= 0x3fe00000; i += 0x200000) {
 		index = ADDR_PMD_IDX((uint64_t)(i));
-		pmd[index] = i | PD_USER | PD_ACCESS | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_BLOCK;
+		pmd[index] = i | PD_USER | PD_ACCESS | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_BLOCK | PAGE_STICKY;
 	}
 }

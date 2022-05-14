@@ -56,9 +56,18 @@ static void pagetable_destroy_layer(uint64_t *pagetable, int layer) {
 	layer--;
 	uint64_t *pa = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
 	if (layer) {
-		for (int i = 0; i < 512; i++) {
+		for (int i = 511; i >= 0; i--) {
 			if ((pa[i] & PD_TYPE_MASK) == PD_TABLE) {
 				pagetable_destroy_layer((uint64_t *)(pa[i] & PD_ADDR_MASK), layer);
+			} else if ((pa[i] & PD_TYPE_MASK) == PD_BLOCK && !(pa[i] & PAGE_STICKY)) {
+				page_free((void *)(pa[i] & PD_ADDR_MASK));
+			}
+
+		}
+	} else {
+		for (int i = 511; i >= 0; i--) {
+			if ((pa[i] & PD_TYPE_MASK) == PD_TABLE && !(pa[i] & PAGE_STICKY)) {
+				page_free((void *)(pa[i] & PD_ADDR_MASK));
 			}
 		}
 	}
