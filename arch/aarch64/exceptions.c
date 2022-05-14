@@ -11,7 +11,7 @@
 int interrupt_ref = 0;
 int in_exception = 0;
 
-extern void exec_signal_handler(void *stack, void (*code)(int), uint64_t *sp, int signal, void *pagetable);
+extern void exec_signal_handler(void (*code)(int), uint64_t *sp, int signal, void *pagetable);
 
 static void kputssync(const char *str) {
 	while (*str) {
@@ -153,7 +153,7 @@ void handle_irq(void *was_el0) {
 				if ((process->pending_signals & (1 << i)) == (1 << i)) {
 					process->pending_signals ^= (1 << i);
 					if (process->signal_handlers[i]) {
-						exec_signal_handler(process->signal_stack + PAGE_UNIT,
+						exec_signal_handler(
 							process->signal_handlers[i],
 							&process->presignal_sp, i,
 							process->pagetable);
@@ -186,7 +186,7 @@ void handle_sync(struct trapframe *trapframe) {
 				if ((process->pending_signals & (1 << i)) == (1 << i)) {
 					process->pending_signals ^= (1 << i);
 					if (process->signal_handlers[i]) {
-						exec_signal_handler(process->signal_stack + PAGE_UNIT,
+						exec_signal_handler(
 							process->signal_handlers[i],
 							&process->presignal_sp, i,
 							process->pagetable);

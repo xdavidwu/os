@@ -21,14 +21,15 @@ exec_signal_handler:
 	mrs x5, sp_el0
 	str x5, [sp, 16 * 6]
 	mov x5, sp
-	str x5, [x2]
-	msr elr_el1, x1
-	msr sp_el0, x0
+	str x5, [x1]
+	msr elr_el1, x0
+	ldr x2, =0x1000000000000
+	msr sp_el0, x2
 	msr spsr_el1, xzr
 	adr lr, call_sigreturn
-	mov x0, x3
+	mov x0, x1
 	dsb ish
-	msr ttbr0_el1, x4
+	msr ttbr0_el1, x3
 	tlbi vmalle1is
 	dsb ish
 	isb

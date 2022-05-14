@@ -45,7 +45,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->pagetable = pagetable_new();
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, process->signal_stack, 1);
+	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, (void *)0xfffffffff000, 1);
 	pagetable_populate_device(process->pagetable);
 	return kthread_create((void (*)(void *))exec_wrap, process);
 }
@@ -70,7 +70,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	}
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, process->signal_stack, 1);
+	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->signal_stack, (void *)0xfffffffff000, 1);
 	pagetable_populate_device(process->pagetable);
 	exec_user(process->pagetable);
 }
@@ -103,7 +103,7 @@ int process_dup() {
 	new->pagetable = pagetable_new();
 	pagetable_insert_range(new->pagetable, PAGETABLE_USER_X, new->image.page, 0, (new->image.size + PAGE_UNIT - 1) / PAGE_UNIT);
 	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->page, (void *)0xffffffffb000, 4);
-	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->signal_stack, new->signal_stack, 1);
+	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->signal_stack, (void *)0xfffffffff000, 1);
 	pagetable_populate_device(new->pagetable);
 	__asm__ ("msr DAIFSet, 0xf\nisb");
 	int mpid = pid++;
