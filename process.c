@@ -89,10 +89,9 @@ int process_dup() {
 	states->x0 = 0;
 	states->stack_page = page_alloc(1);
 	uint8_t *ptrk = states->stack_page + HIGH_MEM_OFFSET;
-	// TODO handle fork from signal handlers?
 	new->pending_signals = process->pending_signals;
-	new->presignal_sp = 0;
-	new->in_signal = false;
+	new->presignal_sp = process->presignal_sp;
+	new->in_signal = process->in_signal;
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
