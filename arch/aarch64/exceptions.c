@@ -193,23 +193,6 @@ void handle_sync(struct trapframe *trapframe) {
 		__asm__ ("isb\nmsr DAIFClr, 0xf");
 		syscall(trapframe);
 		__asm__ ("msr DAIFSet, 0xf\nisb");
-		if (process->pending_signals && !process->in_signal) {
-			process->in_signal = true;
-			for (int i = 1; i <= SIGNAL_MAX; i++) {
-				if ((process->pending_signals & (1 << i)) == (1 << i)) {
-					process->pending_signals ^= (1 << i);
-					if (process->signal_handlers[i]) {
-						exec_signal_handler(
-							process->signal_handlers[i],
-							&process->presignal_sp, i,
-							process->pagetable);
-					}
-					__asm__ ("msr DAIFSet, 0xf\nisb");
-				}
-			}
-			process->in_signal = false;
-			__asm__ ("msr DAIFSet, 0xf\nisb");
-		}
 	} else if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_DA_EL0 &&
 			(esr_el1 & ESR_EL1_EC_DA_DFSC_MASK) == ESR_EL1_EC_DA_DFSC_ACCESS_L3) {
 		far_el1 /= PAGE_UNIT;
@@ -225,14 +208,35 @@ void handle_sync(struct trapframe *trapframe) {
 			(esr_el1 & ESR_EL1_EC_DA_DFSC_MASK) == ESR_EL1_EC_DA_DFSC_PERM_L3) {
 		far_el1 /= PAGE_UNIT;
 		far_el1 *= PAGE_UNIT;
-		kputs("Page copy: ");
+		__asm__ ("isb\nmsr DAIFClr, 0xf");
+		if (!pagetable_copy_page(process->pagetable, (void *)far_el1)) {
+			process->pending_signals |= (1 << SIGSEGV);
+			kputs("Segmentation fault: ");
+		} else {
+			kputs("Page copy: ");
+		}
 		kput64x(far_el1);
 		kputs("\n");
-		__asm__ ("isb\nmsr DAIFClr, 0xf");
-		pagetable_copy_page(process->pagetable, (void *)far_el1);
 		__asm__ ("msr DAIFSet, 0xf\nisb");
 	} else {
 		handle_unimplemented();
 		while (1);
+	}
+	if (process->pending_signals && !process->in_signal) {
+		process->in_signal = true;
+		for (int i = 1; i <= SIGNAL_MAX; i++) {
+			if ((process->pending_signals & (1 << i)) == (1 << i)) {
+				process->pending_signals ^= (1 << i);
+				if (process->signal_handlers[i]) {
+					exec_signal_handler(
+						process->signal_handlers[i],
+						&process->presignal_sp, i,
+						process->pagetable);
+				}
+				__asm__ ("msr DAIFSet, 0xf\nisb");
+			}
+		}
+		process->in_signal = false;
+		__asm__ ("msr DAIFSet, 0xf\nisb");
 	}
 }

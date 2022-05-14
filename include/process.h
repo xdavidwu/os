@@ -5,10 +5,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define SIGNAL_MAX	9
+#define SIGNAL_MAX	11
 
 enum {
 	SIGKILL = 9,
+	SIGSEGV = 11,
 };
 
 struct process_image {
