@@ -114,6 +114,9 @@ void *page_alloc(int ord) {
 
 void page_take(void *page) {
 	int idx = (page - page_base) / PAGE_UNIT;
+	if (page_buddies[idx].status == BUDDY_IS_BUDDY) {
+		return;
+	}
 	page_buddies[idx].ref++;
 	return;
 }
