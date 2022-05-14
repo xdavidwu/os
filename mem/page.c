@@ -124,6 +124,9 @@ void page_free(void *page) {
 	}
 	int idx = (page - page_base) / PAGE_UNIT;
 	DISABLE_INTERRUPTS();
+	if (page_buddies[idx].status == BUDDY_IS_BUDDY) {
+		return;
+	}
 	if (page_buddies[idx].ref) {
 		page_buddies[idx].ref--;
 		return;
