@@ -13,5 +13,4 @@ exec_user:
 	tlbi vmalle1is
 	dsb ish
 	isb
-	msr DAIFClr, 0xf
 	eret
