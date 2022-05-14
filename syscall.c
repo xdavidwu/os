@@ -7,6 +7,7 @@
 #include "init.h"
 #include "kio.h"
 #include "kthread.h"
+#include "page.h"
 #include "process.h"
 #include "string.h"
 #include "syscall.h"
@@ -136,17 +137,46 @@ static reg_t mbox_call_user(reg_t rchannel, reg_t raddr) {
 	return mbox_call(rchannel, pa);
 }
 
-static reg_t (*syscalls[])(reg_t, reg_t) = {
+#define MAP_ANON	0x20
+
+enum {
+	PROT_READ = 1 << 0,
+	PROT_WRITE = 1 << 1,
+	PROT_EXEC = 1 << 2,
+};
+
+static reg_t mmap(reg_t raddr, reg_t rlen, reg_t rprot, reg_t rflags) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	if (!(rflags & MAP_ANON) || !rlen || !rprot) {
+		return (reg_t)NULL;
+	}
+	int sz = (rlen + PAGE_UNIT - 1) / PAGE_UNIT;
+	void *fit = pagetable_find_fit(process->pagetable, (void *)raddr, sz);
+	int perm = 0;
+	if (rprot & PROT_WRITE) {
+		perm |= PAGETABLE_USER_W;
+	}
+	if (rprot & PROT_EXEC) {
+		perm |= PAGETABLE_USER_X;
+	}
+	pagetable_ondemand_range(process->pagetable, perm, fit, sz);
+	return (reg_t)fit;
+}
+
+static reg_t (*syscalls[])() = {
 	getpid,
 	cread,
 	cwrite,
 	exec,
-	(reg_t (*)(reg_t, reg_t))process_dup,
-	(reg_t (*)(reg_t, reg_t))process_exit,
+	(reg_t (*)())process_dup,
+	(reg_t (*)())process_exit,
 	mbox_call_user,
 	skill,
 	signal,
 	kill,
+	mmap,
 	sigreturn,
 };
 
@@ -157,6 +187,8 @@ void syscall(struct trapframe *trapframe) {
 		trapframe->REGISTER_SYSCALL_RET =
 			syscalls[trapframe->REGISTER_SYSCALL_NUM](
 				trapframe->REGISTER_SYSCALL_P1,
-				trapframe->REGISTER_SYSCALL_P2);
+				trapframe->REGISTER_SYSCALL_P2,
+				trapframe->REGISTER_SYSCALL_P3,
+				trapframe->REGISTER_SYSCALL_P4);
 	}
 }

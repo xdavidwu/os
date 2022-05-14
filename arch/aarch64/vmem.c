@@ -190,7 +190,7 @@ uint64_t *pagetable_cow(uint64_t *pagetable) {
 	return pagetable_cow_layer(pagetable, 4);
 }
 
-void pagetable_copy_page(uint64_t *pagetable, void *src) {
+bool pagetable_copy_page(uint64_t *pagetable, void *src) {
 	uint64_t *pgd = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
 	int index = ADDR_PGD_IDX((uint64_t)(src));
 	uint64_t *pud = (uint64_t *)((pgd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
@@ -201,6 +201,9 @@ void pagetable_copy_page(uint64_t *pagetable, void *src) {
 	index = ADDR_PTE_IDX((uint64_t)(src));
 	void *page_src = (void *)(pte[index] & PD_ADDR_MASK);
 	void *page_dst = page_alloc(1);
+	if (!(pte[index] & PAGE_COW)) {
+		return false;
+	}
 	pte[index] &= ~(PD_ADDR_MASK | PD_RO | PAGE_COW);
 	pte[index] |= ((uint64_t)page_dst & PD_ADDR_MASK) | PD_ACCESS;
 	uint8_t *psrc = page_src + HIGH_MEM_OFFSET;
@@ -210,5 +213,67 @@ void pagetable_copy_page(uint64_t *pagetable, void *src) {
 		*pdst++ = *psrc++;
 	}
 	page_free(page_src);
+	return true;
 }
 
+static bool pagetable_available(uint64_t *pagetable, void *src) {
+	uint64_t *pgd = (uint64_t *)((uint64_t)pagetable + HIGH_MEM_OFFSET);
+	int index = ADDR_PGD_IDX((uint64_t)(src));
+	if ((pgd[index] & PD_TYPE_MASK) == PD_BLOCK) {
+		return false;
+	}
+	if ((pgd[index] & PD_TYPE_MASK) != PD_TABLE) {
+		return true;
+	}
+	uint64_t *pud = (uint64_t *)((pgd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PUD_IDX((uint64_t)(src));
+	if ((pud[index] & PD_TYPE_MASK) == PD_BLOCK) {
+		return false;
+	}
+	if ((pud[index] & PD_TYPE_MASK) != PD_TABLE) {
+		return true;
+	}
+	uint64_t *pmd = (uint64_t *)((pud[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PMD_IDX((uint64_t)(src));
+	if ((pmd[index] & PD_TYPE_MASK) == PD_BLOCK) {
+		return false;
+	}
+	if ((pmd[index] & PD_TYPE_MASK) != PD_TABLE) {
+		return true;
+	}
+	uint64_t *pte = (uint64_t *)((pmd[index] & PD_ADDR_MASK) + HIGH_MEM_OFFSET);
+	index = ADDR_PTE_IDX((uint64_t)(src));
+	if ((pte[index] & PD_TYPE_MASK) == PD_TABLE) {
+		return false;
+	}
+	return true;
+}
+
+void *pagetable_find_fit(uint64_t *pagetable, void *hint, int sz) {
+	uint64_t hintu = (uint64_t)hint;
+	hintu /= PAGE_UNIT;
+	hintu *= PAGE_UNIT;
+	uint64_t last = (hintu >= PAGE_UNIT) ? hintu - PAGE_UNIT : 0xfffffffff000;
+	uint64_t candidate = 0x1000000000000;
+	int csz = 0;
+	for (uint64_t current = hintu; ; current += PAGE_UNIT) {
+		if (current == 0x1000000000000) {
+			current = 0;
+		}
+		if (pagetable_available(pagetable, (void *)current)) {
+			if (candidate == 0x1000000000000) {
+				candidate = current;
+			}
+			csz++;
+			if (csz == sz) {
+				return (void *)candidate;
+			}
+		} else {
+			candidate = 0x1000000000000;
+			csz = 0;
+		}
+		if (current == last) {
+			return NULL;
+		}
+	}
+}

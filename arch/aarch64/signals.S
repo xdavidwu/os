@@ -5,7 +5,7 @@ sigkill_default:
 	svc 0
 
 call_sigreturn:
-	mov x8, 10
+	mov x8, 11
 	svc 0
 
 	.global exec_signal_handler

@@ -1,6 +1,7 @@
 #ifndef VMEM_H
 #define VMEM_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 enum {
@@ -17,6 +18,7 @@ void pagetable_demand(uint64_t *pagetable, void *dst, void *src);
 void pagetable_destroy(uint64_t *pagetable);
 void *pagetable_translate(uint64_t *pagetable, void *addr);
 uint64_t *pagetable_cow(uint64_t *pagetable);
-void pagetable_copy_page(uint64_t *pagetable, void *src);
+bool pagetable_copy_page(uint64_t *pagetable, void *src);
+void *pagetable_find_fit(uint64_t *pagetable, void *hint, int sz);
 
 #endif

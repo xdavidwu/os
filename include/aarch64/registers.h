@@ -44,6 +44,8 @@ struct kthread_states {
 #define REGISTER_SYSCALL_RET	x0
 #define REGISTER_SYSCALL_P1	x0
 #define REGISTER_SYSCALL_P2	x1
+#define REGISTER_SYSCALL_P3	x2
+#define REGISTER_SYSCALL_P4	x3
 
 #define ESR_EL1_EC_MASK	0xfc000000
 #define ESR_EL1_EC_OFFSET	26
