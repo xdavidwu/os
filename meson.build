@@ -14,14 +14,14 @@ add_project_link_arguments(
 
 sources = [
   'arch/aarch64/init.S',
-  'arch/aarch64/exceptions.S',
-  'arch/aarch64/exceptions.c',
   'arch/aarch64/exec.S',
   'arch/aarch64/kthread.S',
-  'arch/aarch64/timer.c',
   'arch/aarch64/signals.S',
-  'arch/aarch64/vmem.c',
   'arch/aarch64/machines/rpi3.c',
+  'arch/aarch64/exceptions.S',
+  'arch/aarch64/exceptions.c',
+  'arch/aarch64/vmem.c',
+  'arch/aarch64/timer.c',
   'arch/aarch64/platforms/bcm2835/mailbox.c',
   'arch/aarch64/platforms/bcm2835/pm.c',
   'arch/aarch64/platforms/bcm2835/ic.c',

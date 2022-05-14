@@ -67,22 +67,6 @@
 	pop_state
 	eret
 .endm
-
-push_user_state:
-	mrs x0, ttbr0_el1
-	str x0, [sp, 16 * 11]
-	mov x0, sp
-	ret
-
-pop_user_state:
-	ldr x0, [sp, 16 * 11]
-	dsb ish
-	msr ttbr0_el1, x0
-	tlbi vmalle1is
-	dsb ish
-	isb
-	ret
-
 	.align 11 // 0x800
 vtable:
 	# from EL1t
@@ -123,7 +107,22 @@ vtable:
 	unimplemented_handler
 	.align 7 // 0x80
 	unimplemented_handler
-	.align 7 // 0x80
+
+push_user_state:
+	mrs x0, ttbr0_el1
+	str x0, [sp, 16 * 11]
+	mov x0, sp
+	ret
+
+pop_user_state:
+	ldr x0, [sp, 16 * 11]
+	dsb ish
+	msr ttbr0_el1, x0
+	tlbi vmalle1is
+	dsb ish
+	isb
+	ret
+
 
 	.global arm_exceptions
 	.type arm_exceptions, %function
