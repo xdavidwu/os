@@ -54,6 +54,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	struct kthread_states *kthr;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
+	process->page = page_alloc(2);
 	pagetable_destroy(process->pagetable);
 	process->pagetable = pagetable_new();
 	int page_ord = 1;
