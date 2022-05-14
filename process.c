@@ -84,7 +84,7 @@ int process_dup() {
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
 	page_take(process->image.page);
-	register uint8_t *ptr = page_alloc(4), *old = process->page, *oldk = kthr->stack_page + HIGH_MEM_OFFSET;
+	register uint8_t *ptr = page_alloc(2), *old = process->page, *oldk = kthr->stack_page + HIGH_MEM_OFFSET;
 	struct process_states *new = malloc(sizeof(struct process_states));
 	new->page = ptr;
 	new->image = process->image;
