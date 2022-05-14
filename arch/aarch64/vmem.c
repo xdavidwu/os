@@ -2,6 +2,7 @@
 #include "exceptions.h"
 #include "page.h"
 #include "vmem.h"
+#include <stddef.h>
 #include <stdint.h>
 
 static void pagetable_init(uint64_t *pa) {
@@ -138,7 +139,7 @@ void *pagetable_translate(uint64_t *pagetable, void *addr) {
 	__asm__ ("at s1e0r, %0" : : "r" (addru));
 	__asm__ ("mrs %0, par_el1" : "=r" (res));
 	ENABLE_INTERRUPTS();
-	return (void *)((res & PD_ADDR_MASK) | ((uint64_t)addr & ((1 << 12) - 1)));
+	return (res & 0x1) ? NULL : (void *)((res & PD_ADDR_MASK) | ((uint64_t)addr & ((1 << 12) - 1)));
 }
 
 static uint64_t *pagetable_cow_layer(uint64_t *pagetable, int layer) {
