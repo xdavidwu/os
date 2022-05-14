@@ -17,7 +17,6 @@ struct process_image {
 };
 
 struct process_states {
-	void *page;
 	struct process_image image;
 	uint32_t pending_signals;
 	void (*signal_handlers[SIGNAL_MAX + 1])(int);

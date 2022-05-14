@@ -33,7 +33,6 @@ int process_exec(uint8_t *image, size_t image_size) {
 	while (image_size--) {
 		*ptr++ = *image++;
 	}
-	process->page = page_alloc(2);
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		process->signal_handlers[a] = NULL;
 	}
@@ -43,7 +42,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->in_signal = false;
 	process->pagetable = pagetable_new();
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
+	pagetable_ondemand_range(process->pagetable, PAGETABLE_USER_W, (void *)0xffffffffb000, 4);
 	pagetable_ondemand(process->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);
 	pagetable_populate_device(process->pagetable);
 	return kthread_create((void (*)(void *))exec_wrap, process);
@@ -53,7 +52,6 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	struct kthread_states *kthr;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
-	process->page = page_alloc(2);
 	pagetable_destroy(process->pagetable);
 	process->pagetable = pagetable_new();
 	int page_ord = 1;
@@ -69,7 +67,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 		*ptr++ = *image++;
 	}
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
-	pagetable_insert_range(process->pagetable, PAGETABLE_USER_W, process->page, (void *)0xffffffffb000, 4);
+	pagetable_ondemand_range(process->pagetable, PAGETABLE_USER_W, (void *)0xffffffffb000, 4);
 	pagetable_ondemand(process->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);
 	pagetable_populate_device(process->pagetable);
 	exec_user(process->pagetable);
