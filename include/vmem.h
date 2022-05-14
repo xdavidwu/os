@@ -16,5 +16,7 @@ void pagetable_ondemand_range(uint64_t *pagetable, int permission, void *src, in
 void pagetable_demand(uint64_t *pagetable, void *dst, void *src);
 void pagetable_destroy(uint64_t *pagetable);
 void *pagetable_translate(uint64_t *pagetable, void *addr);
+uint64_t *pagetable_cow(uint64_t *pagetable);
+void pagetable_copy_page(uint64_t *pagetable, void *src);
 
 #endif

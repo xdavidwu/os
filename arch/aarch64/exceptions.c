@@ -221,6 +221,16 @@ void handle_sync(struct trapframe *trapframe) {
 		void *page = page_alloc(1);
 		pagetable_demand(process->pagetable, page, (void *)far_el1);
 		__asm__ ("msr DAIFSet, 0xf\nisb");
+	} else if ((esr_el1 & ESR_EL1_EC_MASK) == ESR_EL1_EC_DA_EL0 &&
+			(esr_el1 & ESR_EL1_EC_DA_DFSC_MASK) == ESR_EL1_EC_DA_DFSC_PERM_L3) {
+		far_el1 /= PAGE_UNIT;
+		far_el1 *= PAGE_UNIT;
+		kputs("Page copy: ");
+		kput64x(far_el1);
+		kputs("\n");
+		__asm__ ("isb\nmsr DAIFClr, 0xf");
+		pagetable_copy_page(process->pagetable, (void *)far_el1);
+		__asm__ ("msr DAIFSet, 0xf\nisb");
 	} else {
 		handle_unimplemented();
 		while (1);

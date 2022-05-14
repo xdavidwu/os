@@ -22,5 +22,6 @@
 
 // not managed, do not free
 #define PAGE_STICKY	(1ULL << 55)
+#define PAGE_COW	(1ULL << 56)
 
 #endif

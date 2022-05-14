@@ -51,5 +51,6 @@ struct kthread_states {
 #define ESR_EL1_EC_DA_EL0	(0b100100ULL << ESR_EL1_EC_OFFSET)
 #define ESR_EL1_EC_DA_DFSC_MASK	((1 << 6) - 1)
 #define ESR_EL1_EC_DA_DFSC_ACCESS_L3	0b001011
+#define ESR_EL1_EC_DA_DFSC_PERM_L3	0b001111
 
 #endif

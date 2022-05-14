@@ -83,9 +83,8 @@ int process_dup() {
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
 	page_take(process->image.page);
-	register uint8_t *ptr = page_alloc(2), *old = process->page, *oldk = kthr->stack_page + HIGH_MEM_OFFSET;
+	uint8_t *oldk = kthr->stack_page + HIGH_MEM_OFFSET;
 	struct process_states *new = malloc(sizeof(struct process_states));
-	new->page = ptr;
 	new->image = process->image;
 	struct kthread_states *states = malloc(sizeof(struct kthread_states));
 	states->data = new;
@@ -99,11 +98,7 @@ int process_dup() {
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
-	new->pagetable = pagetable_new();
-	pagetable_insert_range(new->pagetable, PAGETABLE_USER_X, new->image.page, 0, (new->image.size + PAGE_UNIT - 1) / PAGE_UNIT);
-	pagetable_insert_range(new->pagetable, PAGETABLE_USER_W, new->page, (void *)0xffffffffb000, 4);
-	pagetable_ondemand(new->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);
-	pagetable_populate_device(new->pagetable);
+	new->pagetable = pagetable_cow(process->pagetable);
 	__asm__ ("msr DAIFSet, 0xf\nisb");
 	int mpid = pid++;
 	states->pid = mpid;
@@ -118,14 +113,8 @@ int process_dup() {
 		states->next = NULL;
 		states->prev = runq;
 	}
-	register int sz = PAGE_UNIT * 4;
-	ptr += HIGH_MEM_OFFSET;
-	old += HIGH_MEM_OFFSET;
-	while (sz--) {
-		*ptr++ = *old++;
-	}
 	uint8_t *cptrk = ptrk, *coldk = oldk;
-	sz = PAGE_UNIT;
+	int sz = PAGE_UNIT;
 	while (sz--) {
 		*cptrk++ = *coldk++;
 	}
