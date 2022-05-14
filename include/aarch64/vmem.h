@@ -10,8 +10,8 @@
 #define PD_USER_NX	(1ULL << 54)
 #define PD_ADDR_MASK	(((1ULL << 48) - 1) ^ ((1ULL << 12) - 1))
 
-#define MAIR_IDX_DEVICE_nGnRnE	0
-#define MAIR_IDX_NORMAL_NOCACHE	1
+#define MAIR_IDX_DEVICE_nGnRnE	1
+#define MAIR_IDX_NORMAL_NOCACHE	0
 
 #define HIGH_MEM_OFFSET	0xffff000000000000
 
