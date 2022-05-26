@@ -11,7 +11,7 @@
 #include "vmem.h"
 #include <stdint.h>
 
-uint8_t *initrd_start = (uint8_t *) 0x8000000;
+uint8_t *initrd_start = (uint8_t *)(HIGH_MEM_OFFSET + 0x8000000);
 
 static void *initrd_end;
 
