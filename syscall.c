@@ -176,7 +176,14 @@ static reg_t (*syscalls[])() = {
 	skill,
 	signal,
 	kill,
-	mmap,
+	mmap, // 10
+	syscall_reserved,
+	syscall_reserved,
+	syscall_reserved,
+	syscall_reserved,
+	syscall_reserved,
+	syscall_reserved,
+	syscall_reserved,
 	sigreturn,
 };
 
