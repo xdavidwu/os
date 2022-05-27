@@ -1,6 +1,7 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include "vfs.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -27,7 +28,7 @@ struct process_states {
 	uint64_t *pagetable;
 };
 
-int process_exec(uint8_t *image, size_t image_size);
+int process_exec(struct fd *f, size_t image_size);
 
 void process_exec_inplace(uint8_t *image, size_t image_size);
 

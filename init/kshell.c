@@ -7,6 +7,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "timer.h"
+#include "vfs.h"
 #include "pm.h"
 #include <stdint.h>
 
@@ -73,22 +74,20 @@ static void exec() {
 	if (buf[l - 1] == '\n') {
 		buf[l - 1] = '\0';
 	}
-	uint8_t *cpio = initrd_start;
-	if (cpio_is_end(cpio)) {
+	int err;
+	struct fd *file = vfs_open(buf, O_RDONLY, &err);
+	if (!file) {
+		kputs("Cannot open ");
+		kputs(buf);
+		kputs(": ");
+		kputc('0' + err);
+		kputc('\n');
 		return;
 	}
-	uint32_t namesz, filesz;
-	do {
-		struct cpio_newc_header *cpio_header =
-			(struct cpio_newc_header *) cpio;
-		namesz = cpio_get_uint32(cpio_header->c_namesize);
-		filesz = cpio_get_uint32(cpio_header->c_filesize);
-		if (!strcmp(cpio_get_name(cpio), buf)) {
-			cpio = cpio_get_file(cpio, namesz);
-			kthread_wait(process_exec(cpio, filesz));
-			break;
-		}
-	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
+	size_t sz = file->inode->size;
+	int thr = process_exec(file, sz);
+	vfs_close(file);
+	kthread_wait(thr);
 }
 
 static bool print_fdt(uint32_t *token) {

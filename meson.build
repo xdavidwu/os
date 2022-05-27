@@ -32,6 +32,8 @@ sources = [
   'console/kio.c',
   'cpio.c',
   'fdt.c',
+  'fs/initrd.c',
+  'fs/vfs.c',
   'kthread.c',
   'process.c',
   'syscall.c',

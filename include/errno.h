@@ -7,6 +7,9 @@ enum {
 	ENOSPC,
 	ENOMEM,
 	ENOENT,
+	ENOTDIR,
+	ENODEV,
+	ENOTSUP,
 };
 
 #endif

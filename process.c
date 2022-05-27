@@ -4,6 +4,7 @@
 #include "kthread.h"
 #include "page.h"
 #include "process.h"
+#include "vfs.h"
 #include "vmem.h"
 #include "stdlib.h"
 #include <stdint.h>
@@ -19,7 +20,7 @@ extern int kthread_dup(struct kthread_states *to, void *basek, void *newk, int r
 extern void sigkill_default();
 extern void pagetable_populate_device(uint64_t *pagetable);
 
-int process_exec(uint8_t *image, size_t image_size) {
+int process_exec(struct fd *f, size_t image_size) {
 	struct process_states *process = malloc(sizeof(struct process_states));
 	int page_ord = 1;
 	int pages = (image_size + PAGE_UNIT - 1) / PAGE_UNIT;
@@ -30,9 +31,7 @@ int process_exec(uint8_t *image, size_t image_size) {
 	process->image.page = ptr;
 	process->image.size = image_size;
 	ptr += HIGH_MEM_OFFSET;
-	while (image_size--) {
-		*ptr++ = *image++;
-	}
+	vfs_read(f, ptr, image_size); // TODO error handling
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		process->signal_handlers[a] = NULL;
 	}

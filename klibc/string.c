@@ -1,4 +1,5 @@
 #include "string.h"
+#include "stdlib.h"
 #include <stddef.h>
 
 int strcmp(const char *s1, const char *s2) {
@@ -45,4 +46,9 @@ char *strcat(char *restrict dest, const char *restrict src) {
 	ptr += strlen(ptr);
 	strcpy(ptr, src);
 	return dest;
+}
+
+char *strdup(const char *src) {
+	char *new = malloc(strlen(src) + 1);
+	return strcpy(new, src);
 }
