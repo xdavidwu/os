@@ -55,5 +55,6 @@ struct fd *vfs_open(const char *path, int flags, int *err);
 int vfs_close(struct fd *i);
 int vfs_read(struct fd *f, void *buf, size_t count);
 struct inode *vfs_get_inode(const char *path, int *err);
+int vfs_ensure_dentries(struct inode *node);
 
 #endif

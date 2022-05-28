@@ -70,15 +70,22 @@ next:
 	return res;
 }
 
+int vfs_ensure_dentries(struct inode *node) {
+	if ((node->mode & S_IFMT) != S_IFDIR) {
+		return -ENOTDIR;
+	}
+	return node->fs->impl->getdents(node);
+}
+
 struct inode *vfs_get_inode(const char *path, int *err) {
 	struct path parsed = parse_path(path);
 	struct inode *node = root;
 	for (int i = 0; parsed.components[i].name; i++) {
-		if ((node->mode & S_IFMT) != S_IFDIR) {
-			*err = ENOTDIR;
+		int len = vfs_ensure_dentries(node);
+		if (len < 0) {
+			*err = -len;
 			return NULL;
 		}
-		node->fs->impl->getdents(node);
 		bool found = false;
 		struct dentry *next = node->entries;
 		while (next) {
