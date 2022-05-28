@@ -48,7 +48,7 @@ struct vfs_impl {
 	int64_t (*pread)(struct inode *inode, void *buf, size_t count, size_t offset);
 	int (*getdents)(struct inode *inode);
 	int (*mount)(const char *source, struct inode *target, uint32_t flags);
-	int (*mkdirat)(struct inode *parent, const char *name, uint32_t mode);
+	struct inode *(*mknodat)(struct inode *parent, const char *name, uint32_t mode, int *err);
 };
 
 int vfs_mount(const char *source, const char *target, const char *fs, uint32_t flags);
@@ -57,6 +57,6 @@ int vfs_close(struct fd *i);
 int vfs_read(struct fd *f, void *buf, size_t count);
 struct inode *vfs_get_inode(const char *path, int *err);
 int vfs_ensure_dentries(struct inode *node);
-int vfs_mkdir(const char *name, uint32_t mode);
+int vfs_mknod(const char *name, uint32_t mode);
 
 #endif

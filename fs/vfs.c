@@ -196,10 +196,7 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 	return res;
 }
 
-int vfs_mkdir(const char *name, uint32_t mode) {
-	if (mode > 0777) {
-		return -EINVAL;
-	}
+int vfs_mknod(const char *name, uint32_t mode) {
 	int err;
 	const char *dname;
 	int nlen;
@@ -207,5 +204,8 @@ int vfs_mkdir(const char *name, uint32_t mode) {
 	if (!parent) {
 		return -err;
 	}
-	return parent->fs->impl->mkdirat(parent, dname, mode);
+	if (!parent->fs->impl->mknodat(parent, dname, mode | S_IFDIR, &err)) {
+		return -err;
+	}
+	return 0;
 }

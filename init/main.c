@@ -10,7 +10,7 @@ extern void kthread_loop();
 
 void main() {
 	vfs_mount("", "/", "tmpfs", 0);
-	vfs_mkdir("/initramfs", 0644);
+	vfs_mknod("/initramfs", S_IFDIR | 0644);
 	int res = vfs_mount("", "/initramfs", "initrd", MS_RDONLY);
 	if (res < 0) {
 		kputs("Failed to mount initrd: ");

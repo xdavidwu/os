@@ -9,13 +9,13 @@
 static int64_t tmpfs_pread(struct inode *inode, void *buf, size_t count, size_t offset);
 static int tmpfs_getdents(struct inode *inode);
 static int tmpfs_mount(const char *source, struct inode *target, uint32_t flags);
-static int tmpfs_mkdirat(struct inode *parent, const char *name, uint32_t mode);
+static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint32_t mode, int *err);
 
 struct vfs_impl tmpfs_impl = {
 	.pread = tmpfs_pread,
 	.getdents = tmpfs_getdents,
 	.mount = tmpfs_mount,
-	.mkdirat = tmpfs_mkdirat,
+	.mknodat = tmpfs_mknodat,
 };
 
 static int tmpfs_mount(const char *source, struct inode *target, uint32_t flags) {
@@ -39,7 +39,7 @@ int64_t tmpfs_pread(struct inode *inode, void *buf, size_t count, size_t offset)
 	return count;
 }
 
-static int tmpfs_mkdirat(struct inode *parent, const char *name, uint32_t mode) {
+static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint32_t mode, int *err) {
 	struct dentry *bak = parent->entries;
 	parent->entries = malloc(sizeof(struct dentry));
 	parent->entries->next = bak;
@@ -49,5 +49,5 @@ static int tmpfs_mkdirat(struct inode *parent, const char *name, uint32_t mode) 
 	parent->entries->inode->mode = S_IFDIR | mode;
 	parent->entries->inode->size = 0;
 	parent->size++;
-	return 0;
+	return parent->entries->inode;
 }
