@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #define SIGNAL_MAX	11
+#define FD_MAX	64
 
 enum {
 	SIGKILL = 9,
@@ -26,6 +27,7 @@ struct process_states {
 	bool in_signal;
 	struct trapframe *trapframe;
 	uint64_t *pagetable;
+	struct fd *fds[FD_MAX];
 };
 
 int process_exec(struct fd *f, size_t image_size);

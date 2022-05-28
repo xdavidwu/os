@@ -13,6 +13,7 @@ enum {
 	EINVAL,
 	EROFS,
 	EBADF,
+	EMFILE,
 };
 
 #endif

@@ -35,6 +35,9 @@ int process_exec(struct fd *f, size_t image_size) {
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		process->signal_handlers[a] = NULL;
 	}
+	for (int a = 0; a < FD_MAX; a++) {
+		process->fds[a] = NULL;
+	}
 	process->signal_handlers[SIGKILL] = sigkill_default;
 	process->signal_handlers[SIGSEGV] = sigkill_default;
 	process->pending_signals = 0;
@@ -100,6 +103,9 @@ int process_dup() {
 	new->in_signal = process->in_signal;
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		new->signal_handlers[a] = process->signal_handlers[a];
+	}
+	for (int a = 0; a < FD_MAX; a++) { // TODO
+		process->fds[a] = NULL;
 	}
 	new->pagetable = pagetable_cow(process->pagetable);
 	__asm__ ("msr DAIFSet, 0xf\nisb");

@@ -10,6 +10,7 @@
 #include "process.h"
 #include "string.h"
 #include "syscall.h"
+#include "vfs.h"
 #include "vmem.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -155,6 +156,65 @@ static reg_t mmap(reg_t raddr, reg_t rlen, reg_t rprot, reg_t rflags) {
 	return (reg_t)fit;
 }
 
+static int first_empty_fd(struct process_states *states) {
+	for (int i = 0 ; i < FD_MAX; i++) {
+		if (!states->fds[i]) {
+			return i;
+		}
+	}
+	return -EMFILE;
+}
+
+static reg_t open(const char *pathname, int flags) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	int f = first_empty_fd(process);
+	if (f < 0) {
+		return f;
+	}
+	int err;
+	// FIXME: quirk: homework test binary does not set access flags
+	process->fds[f] = vfs_open(pathname, flags | O_RDWR, &err);
+	if (!process->fds[f]) {
+		return -err;
+	}
+	return f;
+}
+
+static reg_t close(int fd) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	if (fd >= FD_MAX || fd < 0 || !process->fds[fd]) {
+		return -EBADF;
+	}
+	vfs_close(process->fds[fd]);
+	process->fds[fd] = NULL;
+	return 0;
+}
+
+static reg_t write(int fd, const void *buf, size_t count) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	if (fd >= FD_MAX || fd < 0 || !process->fds[fd]) {
+		return -EBADF;
+	}
+	return vfs_write(process->fds[fd], buf, count);
+}
+
+static reg_t read(int fd, void *buf, size_t count) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	if (fd >= FD_MAX || fd < 0 || !process->fds[fd]) {
+		return -EBADF;
+	}
+	int res = vfs_read(process->fds[fd], buf, count);
+	return res;
+}
+
 static reg_t (*syscalls[])() = {
 	getpid,
 	cread,
@@ -167,10 +227,10 @@ static reg_t (*syscalls[])() = {
 	signal,
 	kill,
 	mmap, // 10
-	syscall_reserved,
-	syscall_reserved,
-	syscall_reserved,
-	syscall_reserved,
+	open,
+	close,
+	write,
+	read,
 	syscall_reserved,
 	syscall_reserved,
 	syscall_reserved,
