@@ -46,7 +46,7 @@ static int initrd_mount(const char *source, struct inode *target, uint32_t flags
 
 static int initrd_getdents(struct inode *inode) {
 	if (inode->entries) {
-		return 0;
+		return inode->size;
 	}
 	const char *name = cpio_get_name(inode->data);
 	bool is_root = !strcmp(name, ".");
@@ -97,6 +97,7 @@ static int initrd_getdents(struct inode *inode) {
 		}
 	}
 	*next = NULL;
+	inode->size = count;
 	return count;
 }
 
