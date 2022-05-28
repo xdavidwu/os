@@ -45,25 +45,23 @@ static void cat() {
 	if (buf[l - 1] == '\n') {
 		buf[l - 1] = '\0';
 	}
-	uint8_t *cpio = initrd_start;
-	if (cpio_is_end(cpio)) {
+	int err;
+	struct fd *file = vfs_open(buf, O_RDONLY, &err);
+	if (!file) {
+		kputs("Cannot open ");
+		kputs(buf);
+		kputs(": ");
+		kputc('0' + err);
+		kputc('\n');
 		return;
 	}
-	uint32_t namesz, filesz;
-	do {
-		struct cpio_newc_header *cpio_header =
-			(struct cpio_newc_header *) cpio;
-		namesz = cpio_get_uint32(cpio_header->c_namesize);
-		filesz = cpio_get_uint32(cpio_header->c_filesize);
-		if (!strcmp(cpio_get_name(cpio), buf)) {
-			cpio = cpio_get_file(cpio, namesz);
-			while (filesz--) {
-				kputc(*cpio);
-				cpio++;
-			}
-			break;
-		}
-	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
+	size_t sz = file->inode->size;
+	uint8_t byte;
+	while (sz--) {
+		vfs_read(file, &byte, 1);
+		kputc(byte);
+	}
+	vfs_close(file);
 }
 
 static void exec() {
