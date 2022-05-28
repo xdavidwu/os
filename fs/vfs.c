@@ -70,7 +70,7 @@ next:
 	return res;
 }
 
-static struct inode *get_inode(const char *path, int *err) {
+struct inode *vfs_get_inode(const char *path, int *err) {
 	struct path parsed = parse_path(path);
 	struct inode *node = root;
 	for (int i = 0; parsed.components[i].name; i++) {
@@ -104,7 +104,7 @@ int vfs_mount(const char *source, const char *target, const char *fs, uint32_t f
 	}
 
 	int err = 0;
-	struct inode *target_i = get_inode(target, &err);
+	struct inode *target_i = vfs_get_inode(target, &err);
 	if (!target_i) {
 		return -err;
 	}
@@ -132,7 +132,7 @@ struct fd *vfs_open(const char *path, int flags, int *err) {
 		*err = ENOTSUP;
 		return NULL;
 	}
-	struct inode *node = get_inode(path, err);
+	struct inode *node = vfs_get_inode(path, err);
 	if (!node) {
 		return NULL;
 	}
