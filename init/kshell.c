@@ -1,4 +1,3 @@
-#include "cpio.h"
 #include "fdt.h"
 #include "init.h"
 #include "kthread.h"
@@ -194,11 +193,11 @@ static const struct kshell_cmd kshell_cmds[] = {
 	{"hello",	"print Hello World!",	hello},
 	{"help",	"print this help menu",	help},
 	{"reboot",	"reboot the device",	platform_reset},
-	{"ls",	"list entries from initrd cpio",	ls},
-	{"cat",	"print file from initrd cpio",	cat},
+	{"ls",	"list all files",	ls},
+	{"cat",	"print file",	cat},
 	{"lsdt",	"print device tree entries",	lsdt},
 	{"tmalloc",	"test malloc",	tmalloc},
-	{"exec",	"load from initrd cpio and exec",	exec},
+	{"exec",	"load and exec",	exec},
 	{"sleep",	"print something after a few seconds",	sleep},
 	{"prio",	"task priority test",	prio},
 	{"kthr",	"test kthreads",	kthr},

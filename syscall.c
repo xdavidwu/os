@@ -1,7 +1,6 @@
 #include "aarch64/registers.h"
 #include "aarch64/vmem.h"
 #include "bcm2835_mailbox.h"
-#include "cpio.h"
 #include "errno.h"
 #include "exceptions.h"
 #include "init.h"
