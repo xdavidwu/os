@@ -6,12 +6,14 @@
 #include <stdbool.h>
 
 extern struct vfs_impl initrd_impl;
+extern struct vfs_impl tmpfs_impl;
 
 struct {
 	const char *name;
 	struct vfs_impl *impl;
 } fs_list[] = {
 	{"initrd", &initrd_impl},
+	{"tmpfs", &tmpfs_impl},
 	{0},
 };
 
@@ -105,11 +107,42 @@ struct inode *vfs_get_inode(const char *path, int *err) {
 	return node;
 }
 
-int vfs_mount(const char *source, const char *target, const char *fs, uint32_t flags) {
-	if (!(flags & MS_RDONLY)) {
-		return -ENOTSUP;
+static struct inode *get_inode_parent(const char *path, int *err, char const **name, int *nlen) {
+	struct path parsed = parse_path(path);
+	struct inode *node = root;
+	if (!parsed.components[0].name) {
+		*err = EINVAL;
+		return NULL;
 	}
+	int i = 0;
+	for (; parsed.components[i + 1].name; i++) {
+		int len = vfs_ensure_dentries(node);
+		if (len < 0) {
+			*err = -len;
+			return NULL;
+		}
+		bool found = false;
+		struct dentry *next = node->entries;
+		while (next) {
+			if (next->len == parsed.components[i].len &&
+					!strncmp(next->name, parsed.components[i].name, next->len)) {
+				node = next->inode;
+				found = true;
+				break;
+			}
+			next = next->next;
+		}
+		if (!found) {
+			*err = ENOENT;
+			return NULL;
+		}
+	}
+	*name = parsed.components[i].name;
+	*nlen = parsed.components[i].len;
+	return node;
+}
 
+int vfs_mount(const char *source, const char *target, const char *fs, uint32_t flags) {
 	int err = 0;
 	struct inode *target_i = vfs_get_inode(target, &err);
 	if (!target_i) {
@@ -163,3 +196,16 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 	return res;
 }
 
+int vfs_mkdir(const char *name, uint32_t mode) {
+	if (mode > 0777) {
+		return -EINVAL;
+	}
+	int err;
+	const char *dname;
+	int nlen;
+	struct inode *parent = get_inode_parent(name, &err, &dname, &nlen);
+	if (!parent) {
+		return -err;
+	}
+	return parent->fs->impl->mkdirat(parent, dname, mode);
+}

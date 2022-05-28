@@ -10,6 +10,7 @@ enum {
 	ENOTDIR,
 	ENODEV,
 	ENOTSUP,
+	EINVAL,
 };
 
 #endif

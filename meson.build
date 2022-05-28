@@ -33,6 +33,7 @@ sources = [
   'cpio.c',
   'fdt.c',
   'fs/initrd.c',
+  'fs/tmpfs.c',
   'fs/vfs.c',
   'kthread.c',
   'process.c',
