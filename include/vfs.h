@@ -5,7 +5,11 @@
 #include <stdint.h>
 
 enum {
-	O_RDONLY = 00,
+	O_ACCMODE	= 03,
+	O_RDONLY	= 00,
+	O_WRONLY	= 01,
+	O_RDWR	= 02,
+	O_CREAT	= 0100,
 };
 
 enum {
@@ -46,6 +50,7 @@ struct dentry {
 
 struct vfs_impl {
 	int64_t (*pread)(struct inode *inode, void *buf, size_t count, size_t offset);
+	int64_t (*pwrite)(struct inode *inode, const void *buf, size_t count, size_t offset);
 	int (*getdents)(struct inode *inode);
 	int (*mount)(const char *source, struct inode *target, uint32_t flags);
 	struct inode *(*mknodat)(struct inode *parent, const char *name, uint32_t mode, int *err);
@@ -55,6 +60,7 @@ int vfs_mount(const char *source, const char *target, const char *fs, uint32_t f
 struct fd *vfs_open(const char *path, int flags, int *err);
 int vfs_close(struct fd *i);
 int vfs_read(struct fd *f, void *buf, size_t count);
+int vfs_write(struct fd *f, const void *buf, size_t count);
 struct inode *vfs_get_inode(const char *path, int *err);
 int vfs_ensure_dentries(struct inode *node);
 struct inode *vfs_mknod(const char *name, uint32_t mode, int *err);

@@ -168,12 +168,19 @@ int vfs_mount(const char *source, const char *target, const char *fs, uint32_t f
 }
 
 struct fd *vfs_open(const char *path, int flags, int *err) {
-	if (flags) {
-		*err = ENOTSUP;
+	struct inode *node = vfs_get_inode(path, err);
+	if (!node && (flags & O_CREAT)) {
+		node = vfs_mknod(path, S_IFREG, err); // TODO mode
+	}
+	if (!node) {
 		return NULL;
 	}
-	struct inode *node = vfs_get_inode(path, err);
-	if (!node) {
+	if ((flags & O_ACCMODE) != O_RDONLY && (node->fs->flags & MS_RDONLY)) {
+		*err = EROFS;
+		return NULL;
+	}
+	if ((node->mode & S_IFMT) != S_IFREG) {
+		*err = ENOTSUP;
 		return NULL;
 	}
 	struct fd *res = malloc(sizeof(struct fd));
@@ -189,7 +196,21 @@ int vfs_close(struct fd *f) {
 }
 
 int vfs_read(struct fd *f, void *buf, size_t count) {
+	if ((f->flags & O_ACCMODE) == O_WRONLY) {
+		return -EBADF;
+	}
 	int res = f->inode->fs->impl->pread(f->inode, buf, count, f->pos);
+	if (res > 0) {
+		f->pos += res;
+	}
+	return res;
+}
+
+int vfs_write(struct fd *f, const void *buf, size_t count) {
+	if ((f->flags & O_ACCMODE) == O_RDONLY) {
+		return -EBADF;
+	}
+	int res = f->inode->fs->impl->pwrite(f->inode, buf, count, f->pos);
 	if (res > 0) {
 		f->pos += res;
 	}
