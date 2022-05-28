@@ -199,6 +199,12 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 	if ((f->flags & O_ACCMODE) == O_WRONLY) {
 		return -EBADF;
 	}
+	if (f->pos >= f->inode->size) {
+		return -EINVAL;
+	}
+	if (f->pos + count >= f->inode->size) {
+		count = f->inode->size - f->pos;
+	}
 	int res = f->inode->fs->impl->pread(f->inode, buf, count, f->pos);
 	if (res > 0) {
 		f->pos += res;
