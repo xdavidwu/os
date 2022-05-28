@@ -21,20 +21,28 @@ static void hello() {
 	kputs("Hello World!\n");
 }
 
-static void ls() {
-	uint8_t *cpio = initrd_start;
-	if (cpio_is_end(cpio)) {
-		return;
+static void ls_print(struct inode *dir, int indent) {
+	vfs_ensure_dentries(dir);
+	struct dentry *next = dir->entries;
+	while (next) {
+		for (int i = 0; i < indent; i++) {
+			kputc(' ');
+		}
+		kputs(next->name);
+		if ((next->inode->mode & S_IFMT) == S_IFDIR) {
+			kputs("/\n");
+			ls_print(next->inode, indent + strlen(next->name) + 1);
+		} else {
+			kputc('\n');
+		}
+		next = next->next;
 	}
-	uint32_t namesz, filesz;
-	do {
-		struct cpio_newc_header *cpio_header =
-			(struct cpio_newc_header *) cpio;
-		namesz = cpio_get_uint32(cpio_header->c_namesize);
-		filesz = cpio_get_uint32(cpio_header->c_filesize);
-		kputs(cpio_get_name(cpio));
-		kputs("\n");
-	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
+}
+
+static void ls() {
+	int err;
+	struct inode *dir = vfs_get_inode("/", &err);
+	ls_print(dir, 0);
 }
 
 static void cat() {
