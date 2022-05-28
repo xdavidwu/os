@@ -48,6 +48,7 @@ static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint3
 	parent->entries->inode = malloc(sizeof(struct inode));
 	parent->entries->inode->mode = S_IFDIR | mode;
 	parent->entries->inode->size = 0;
+	parent->entries->inode->fs = parent->fs;
 	parent->size++;
 	return parent->entries->inode;
 }
