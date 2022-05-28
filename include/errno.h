@@ -11,6 +11,7 @@ enum {
 	ENODEV,
 	ENOTSUP,
 	EINVAL,
+	EROFS,
 };
 
 #endif

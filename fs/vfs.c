@@ -204,6 +204,9 @@ int vfs_mknod(const char *name, uint32_t mode) {
 	if (!parent) {
 		return -err;
 	}
+	if (parent->fs->flags & MS_RDONLY) {
+		return -EROFS;
+	}
 	if (!parent->fs->impl->mknodat(parent, dname, mode | S_IFDIR, &err)) {
 		return -err;
 	}
