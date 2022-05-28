@@ -54,6 +54,7 @@ static int initrd_getdents(struct inode *inode) {
 	struct dentry **next = &inode->entries;
 	uint8_t *cpio = inode->data;
 	uint32_t namesz, filesz;
+	int count = 0;
 	struct cpio_newc_header *cpio_header =
 		(struct cpio_newc_header *) cpio;
 	namesz = cpio_get_uint32(cpio_header->c_namesize);
@@ -90,12 +91,13 @@ static int initrd_getdents(struct inode *inode) {
 			(*next)->inode->size = filesz;
 			(*next)->inode->mode = cpio_get_uint32(cpio_header->c_mode);
 			next = &(*next)->next;
+			count++;
 		} else {
 			break;
 		}
 	}
 	*next = NULL;
-	return 0;
+	return count;
 }
 
 int64_t initrd_pread(struct inode *inode, void *buf, size_t count, size_t offset) {
