@@ -196,19 +196,16 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 	return res;
 }
 
-int vfs_mknod(const char *name, uint32_t mode) {
-	int err;
+struct inode *vfs_mknod(const char *name, uint32_t mode, int *err) {
 	const char *dname;
 	int nlen;
-	struct inode *parent = get_inode_parent(name, &err, &dname, &nlen);
+	struct inode *parent = get_inode_parent(name, err, &dname, &nlen);
 	if (!parent) {
-		return -err;
+		return NULL;
 	}
 	if (parent->fs->flags & MS_RDONLY) {
-		return -EROFS;
+		*err = EROFS;
+		return NULL;
 	}
-	if (!parent->fs->impl->mknodat(parent, dname, mode | S_IFDIR, &err)) {
-		return -err;
-	}
-	return 0;
+	return parent->fs->impl->mknodat(parent, dname, mode | S_IFDIR, err);
 }

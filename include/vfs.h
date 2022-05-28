@@ -57,6 +57,6 @@ int vfs_close(struct fd *i);
 int vfs_read(struct fd *f, void *buf, size_t count);
 struct inode *vfs_get_inode(const char *path, int *err);
 int vfs_ensure_dentries(struct inode *node);
-int vfs_mknod(const char *name, uint32_t mode);
+struct inode *vfs_mknod(const char *name, uint32_t mode, int *err);
 
 #endif
