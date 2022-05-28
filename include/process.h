@@ -30,7 +30,7 @@ struct process_states {
 
 int process_exec(struct fd *f, size_t image_size);
 
-void process_exec_inplace(uint8_t *image, size_t image_size);
+void process_exec_inplace(struct fd *f, size_t image_size);
 
 int process_dup();
 

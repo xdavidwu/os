@@ -48,7 +48,7 @@ int process_exec(struct fd *f, size_t image_size) {
 	return kthread_create((void (*)(void *))exec_wrap, process);
 }
 
-void process_exec_inplace(uint8_t *image, size_t image_size) {
+void process_exec_inplace(struct fd *f, size_t image_size) {
 	struct kthread_states *kthr;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
@@ -71,9 +71,7 @@ void process_exec_inplace(uint8_t *image, size_t image_size) {
 	process->image.page = ptr;
 	process->image.size = image_size;
 	ptr += HIGH_MEM_OFFSET;
-	while (image_size--) {
-		*ptr++ = *image++;
-	}
+	vfs_read(f, ptr, image_size); // TODO error handling
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_ondemand_range(process->pagetable, PAGETABLE_USER_W, (void *)0xffffffffb000, 4);
 	pagetable_ondemand(process->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);

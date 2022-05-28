@@ -52,23 +52,14 @@ static reg_t getpid() {
 
 static reg_t exec(reg_t rname, reg_t unused) {
 	const char *name = (const char *)rname;
-	uint8_t *cpio = initrd_start;
-	if (cpio_is_end(cpio)) {
-		return -ENOENT;
+	int err;
+	struct fd *file = vfs_open(name, O_RDONLY, &err);
+	if (!file) {
+		return -err;
 	}
-	uint32_t namesz, filesz;
-	do {
-		struct cpio_newc_header *cpio_header =
-			(struct cpio_newc_header *) cpio;
-		namesz = cpio_get_uint32(cpio_header->c_namesize);
-		filesz = cpio_get_uint32(cpio_header->c_filesize);
-		if (!strcmp(cpio_get_name(cpio), name)) {
-			cpio = cpio_get_file(cpio, namesz);
-			process_exec_inplace(cpio, filesz);
-			return 0;
-		}
-	} while ((cpio = cpio_next_entry(cpio, namesz, filesz)));
-	return -ENOENT;
+	size_t sz = file->inode->size;
+	process_exec_inplace(file, sz);
+	return 0;
 }
 
 static reg_t signal(reg_t rsig, reg_t rhandler) {
