@@ -228,5 +228,5 @@ struct inode *vfs_mknod(const char *name, uint32_t mode, int *err) {
 		*err = EROFS;
 		return NULL;
 	}
-	return parent->fs->impl->mknodat(parent, dname, mode | S_IFDIR, err);
+	return parent->fs->impl->mknodat(parent, dname, mode, err);
 }
