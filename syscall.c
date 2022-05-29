@@ -215,6 +215,17 @@ static reg_t read(int fd, void *buf, size_t count) {
 	return res;
 }
 
+static reg_t mkdir(const char *pathname, uint32_t mode) {
+	int err;
+	if (mode > 0777) {
+		return -EINVAL;
+	}
+	if (!vfs_mknod(pathname, mode | S_IFDIR, &err)) {
+		return -err;
+	}
+	return 0;
+}
+
 static reg_t (*syscalls[])() = {
 	getpid,
 	cread,
@@ -231,7 +242,7 @@ static reg_t (*syscalls[])() = {
 	close,
 	write,
 	read,
-	syscall_reserved,
+	mkdir,
 	syscall_reserved,
 	syscall_reserved,
 	sigreturn,
