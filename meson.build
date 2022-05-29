@@ -31,6 +31,7 @@ sources = [
   'console/cio.c',
   'console/kio.c',
   'cpio.c',
+  'dev/console.c',
   'fdt.c',
   'fs/initrd.c',
   'fs/tmpfs.c',

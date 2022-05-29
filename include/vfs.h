@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define major(x)	((x) >> 8)
+#define minor(x)	((x) & 0xff)
+#define makedev(x, y)	(((x) << 8) & y)
+
 enum {
 	O_ACCMODE	= 03,
 	O_RDONLY	= 00,
@@ -16,6 +20,7 @@ enum {
 	S_IFMT	= 0170000,
 	S_IFREG	= 0100000,
 	S_IFDIR	= 0040000,
+	S_IFCHR	= 0020000,
 };
 
 enum {
@@ -32,6 +37,7 @@ struct inode {
 	struct fs *fs;
 	size_t size;
 	struct dentry *entries;
+	uint16_t dev;
 	void *data;
 };
 
@@ -53,7 +59,7 @@ struct vfs_impl {
 	int64_t (*pwrite)(struct inode *inode, const void *buf, size_t count, size_t offset);
 	int (*getdents)(struct inode *inode);
 	int (*mount)(const char *source, struct inode *target, uint32_t flags);
-	struct inode *(*mknodat)(struct inode *parent, const char *name, uint32_t mode, int *err);
+	struct inode *(*mknodat)(struct inode *parent, const char *name, uint32_t mode, uint16_t dev, int *err);
 };
 
 int vfs_mount(const char *source, const char *target, const char *fs, uint32_t flags);
@@ -63,6 +69,6 @@ int vfs_read(struct fd *f, void *buf, size_t count);
 int vfs_write(struct fd *f, const void *buf, size_t count);
 struct inode *vfs_get_inode(const char *path, int *err);
 int vfs_ensure_dentries(struct inode *node);
-struct inode *vfs_mknod(const char *name, uint32_t mode, int *err);
+struct inode *vfs_mknod(const char *name, uint32_t mode, uint16_t dev, int *err);
 
 #endif

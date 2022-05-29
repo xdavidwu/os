@@ -12,7 +12,7 @@ static int64_t tmpfs_pread(struct inode *inode, void *buf, size_t count, size_t 
 static int64_t tmpfs_pwrite(struct inode *inode, const void *buf, size_t count, size_t offset);
 static int tmpfs_getdents(struct inode *inode);
 static int tmpfs_mount(const char *source, struct inode *target, uint32_t flags);
-static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint32_t mode, int *err);
+static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint32_t mode, uint16_t dev, int *err);
 
 struct vfs_impl tmpfs_impl = {
 	.pread = tmpfs_pread,
@@ -62,7 +62,7 @@ int64_t tmpfs_pwrite(struct inode *inode, const void *buf, size_t count, size_t 
 	return count;
 }
 
-static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint32_t mode, int *err) {
+static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint32_t mode, uint16_t dev, int *err) {
 	struct dentry *bak = parent->entries;
 	parent->entries = malloc(sizeof(struct dentry));
 	parent->entries->next = bak;
@@ -71,6 +71,7 @@ static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint3
 	parent->entries->inode = malloc(sizeof(struct inode));
 	parent->entries->inode->mode = mode;
 	parent->entries->inode->size = 0;
+	parent->entries->inode->dev = dev;
 	parent->entries->inode->fs = parent->fs;
 	parent->size++;
 	return parent->entries->inode;

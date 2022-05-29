@@ -36,7 +36,11 @@ int process_exec(struct fd *f, size_t image_size) {
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		process->signal_handlers[a] = NULL;
 	}
-	for (int a = 0; a < FD_MAX; a++) {
+	int err;
+	process->fds[0] = vfs_open("/dev/uart", O_RDONLY, &err);
+	process->fds[1] = vfs_open("/dev/uart", O_WRONLY, &err);
+	process->fds[2] = vfs_open("/dev/uart", O_WRONLY, &err);
+	for (int a = 3; a < FD_MAX; a++) {
 		process->fds[a] = NULL;
 	}
 	process->signal_handlers[SIGKILL] = sigkill_default;
@@ -107,7 +111,11 @@ int process_dup() {
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
-	for (int a = 0; a < FD_MAX; a++) { // TODO
+	int err;
+	process->fds[0] = vfs_open("/dev/uart", O_RDONLY, &err);
+	process->fds[1] = vfs_open("/dev/uart", O_WRONLY, &err);
+	process->fds[2] = vfs_open("/dev/uart", O_WRONLY, &err);
+	for (int a = 3; a < FD_MAX; a++) { // TODO
 		process->fds[a] = NULL;
 	}
 	new->pagetable = pagetable_cow(process->pagetable);

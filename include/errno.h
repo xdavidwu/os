@@ -14,6 +14,7 @@ enum {
 	EROFS,
 	EBADF,
 	EMFILE,
+	ENXIO,
 };
 
 #endif

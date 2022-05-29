@@ -239,7 +239,7 @@ static reg_t mkdir(const char *pathname, uint32_t mode) {
 		return -EINVAL;
 	}
 	char *npath = make_absolute(process, pathname);
-	if (!vfs_mknod(npath ? npath : pathname, mode | S_IFDIR, &err)) {
+	if (!vfs_mknod(npath ? npath : pathname, mode | S_IFDIR, 0, &err)) {
 		free(npath);
 		return -err;
 	}
