@@ -8,6 +8,7 @@
 #include "vmem.h"
 #include "stdlib.h"
 #include <stdint.h>
+#include "string.h"
 
 extern void exec_user(void *pagetable);
 
@@ -44,6 +45,7 @@ int process_exec(struct fd *f, size_t image_size) {
 	process->presignal_sp = 0xfffffffff000;
 	process->in_signal = false;
 	process->pagetable = pagetable_new();
+	process->cwd = strdup("/");
 	pagetable_insert_range(process->pagetable, PAGETABLE_USER_X, process->image.page, 0, 1 << page_ord);
 	pagetable_ondemand_range(process->pagetable, PAGETABLE_USER_W, (void *)0xffffffffb000, 4);
 	pagetable_ondemand(process->pagetable, PAGETABLE_USER_W, (void *)0xfffffffff000);
@@ -101,6 +103,7 @@ int process_dup() {
 	new->pending_signals = process->pending_signals;
 	new->presignal_sp = process->presignal_sp;
 	new->in_signal = process->in_signal;
+	new->cwd = strdup(process->cwd);
 	for (int a = 0; a <= SIGNAL_MAX; a++) {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
@@ -137,6 +140,7 @@ void process_exit() {
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (kthr));
 	struct process_states *process = kthr->data;
 	pagetable_destroy(process->pagetable);
+	free(process->cwd);
 	free(process);
 	kthread_exit();
 }

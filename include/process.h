@@ -28,6 +28,7 @@ struct process_states {
 	struct trapframe *trapframe;
 	uint64_t *pagetable;
 	struct fd *fds[FD_MAX];
+	char *cwd;
 };
 
 int process_exec(struct fd *f, size_t image_size);

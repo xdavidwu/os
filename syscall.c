@@ -8,6 +8,7 @@
 #include "kthread.h"
 #include "page.h"
 #include "process.h"
+#include "stdlib.h"
 #include "string.h"
 #include "syscall.h"
 #include "vfs.h"
@@ -165,6 +166,18 @@ static int first_empty_fd(struct process_states *states) {
 	return -EMFILE;
 }
 
+static char *make_absolute(struct process_states *process, const char *path) {
+	if (path[0] == '/') {
+		return NULL;
+	}
+	int l = strlen(process->cwd) + strlen(path) + 2;
+	char *new = malloc(l);
+	strcpy(new, process->cwd);
+	strcat(new, "/");
+	strcat(new, path);
+	return new;
+}
+
 static reg_t open(const char *pathname, int flags) {
 	struct kthread_states *states;
 	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
@@ -173,9 +186,11 @@ static reg_t open(const char *pathname, int flags) {
 	if (f < 0) {
 		return f;
 	}
+	char *npath = make_absolute(process, pathname);
 	int err;
 	// FIXME: quirk: homework test binary does not set access flags
-	process->fds[f] = vfs_open(pathname, flags | O_RDWR, &err);
+	process->fds[f] = vfs_open(npath ? npath : pathname, flags | O_RDWR, &err);
+	free(npath);
 	if (!process->fds[f]) {
 		return -err;
 	}
@@ -216,19 +231,45 @@ static reg_t read(int fd, void *buf, size_t count) {
 }
 
 static reg_t mkdir(const char *pathname, uint32_t mode) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
 	int err;
 	if (mode > 0777) {
 		return -EINVAL;
 	}
-	if (!vfs_mknod(pathname, mode | S_IFDIR, &err)) {
+	char *npath = make_absolute(process, pathname);
+	if (!vfs_mknod(npath ? npath : pathname, mode | S_IFDIR, &err)) {
+		free(npath);
 		return -err;
 	}
+	free(npath);
 	return 0;
 }
 
 static reg_t mount(const char *src, const char *target, const char *filesystem,
 		uint32_t flags, const void *data) {
 	return vfs_mount(src, target, filesystem, flags);
+}
+
+static reg_t chdir(const char *path) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	struct inode *node;
+	int err;
+	char *npath = make_absolute(process, path);
+	if (!(node = vfs_get_inode(npath ? npath : path, &err))) {
+		free(npath);
+		return -err;
+	}
+	if ((node->mode & S_IFMT) != S_IFDIR) {
+		free(npath);
+		return -ENOTDIR;
+	}
+	free(process->cwd);
+	process->cwd = npath ? npath : strdup(path);
+	return 0;
 }
 
 static reg_t (*syscalls[])() = {
@@ -249,7 +290,7 @@ static reg_t (*syscalls[])() = {
 	read,
 	mkdir,
 	mount,
-	syscall_reserved,
+	chdir,
 	sigreturn,
 };
 
