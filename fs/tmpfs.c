@@ -23,6 +23,9 @@ struct vfs_impl tmpfs_impl = {
 };
 
 static int tmpfs_mount(const char *source, struct inode *target, uint32_t flags) {
+	target->size = 0;
+	target->entries = NULL;
+	target->data = NULL;
 	target->fs = malloc(sizeof(struct fs));
 	target->fs->flags = flags;
 	target->fs->impl = &tmpfs_impl;

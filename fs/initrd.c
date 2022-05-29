@@ -37,6 +37,8 @@ static int initrd_mount(const char *source, struct inode *target, uint32_t flags
 	if (namesz != 2 || *cpio_get_name(cpio) != '.') {
 		return -ENOENT;
 	}
+	target->size = 0;
+	target->entries = NULL;
 	target->data = cpio;
 	target->fs = malloc(sizeof(struct fs));
 	target->fs->flags = flags;
