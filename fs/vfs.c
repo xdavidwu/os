@@ -257,6 +257,21 @@ int vfs_write(struct fd *f, const void *buf, size_t count) {
 	return res;
 }
 
+int64_t vfs_lseek(struct fd *f, int64_t offset, int whence) {
+	switch (whence) {
+	case SEEK_SET:
+		f->pos = offset;
+		break;
+	case SEEK_CUR:
+		f->pos += offset;
+		break;
+	case SEEK_END:
+		f->pos = f->inode->size + offset;
+		break;
+	}
+	return f->pos;
+}
+
 struct inode *vfs_mknod(const char *name, uint32_t mode, uint16_t dev, int *err) {
 	const char *dname;
 	int nlen;

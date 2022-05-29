@@ -272,6 +272,16 @@ static reg_t chdir(const char *path) {
 	return 0;
 }
 
+static reg_t lseek(int fd, int64_t offset, int whence) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	if (fd >= FD_MAX || fd < 0 || !process->fds[fd]) {
+		return -EBADF;
+	}
+	return vfs_lseek(process->fds[fd], offset, whence);
+}
+
 static reg_t (*syscalls[])() = {
 	getpid,
 	cread,
@@ -291,7 +301,7 @@ static reg_t (*syscalls[])() = {
 	mkdir,
 	mount,
 	chdir,
-	syscall_reserved,
+	lseek,
 	syscall_reserved,
 	sigreturn, // 20
 };
