@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 extern struct vfs_impl initrd_impl;
@@ -24,11 +25,25 @@ extern int console_write(int minor, const void *buf, size_t count);
 static struct {
 	int (*read)(int minor, void *buf, size_t count);
 	int (*write)(int minor, const void *buf, size_t count);
-} dev_list[] = {
+} cdev_list[] = {
 	{ .read = console_read, .write = console_write },
 };
 
-static int dev_list_max = 0;
+static int cdev_list_max = 0;
+
+extern int64_t framebuffer_pread(int minor, void *buf, size_t count, size_t offset);
+extern int64_t framebuffer_pwrite(int minor, const void *buf, size_t count, size_t offset);
+extern int framebuffer_ioctl(int minor, uint32_t request, void *data);
+
+static struct {
+	int64_t (*pread)(int minor, void *buf, size_t count, size_t offset);
+	int64_t (*pwrite)(int minor, const void *buf, size_t count, size_t offset);
+	int (*ioctl)(int minor, uint32_t request, void *data);
+} bdev_list[] = {
+	{ .pread = framebuffer_pread, .pwrite = framebuffer_pwrite, .ioctl = framebuffer_ioctl },
+};
+
+static int bdev_list_max = 0;
 
 static struct inode initial_root_node = {
 	.mode = S_IFDIR,
@@ -193,13 +208,21 @@ struct fd *vfs_open(const char *path, int flags, int *err) {
 		*err = EROFS;
 		return NULL;
 	}*/
-	if ((node->mode & S_IFMT) != S_IFREG && (node->mode & S_IFCHR) != S_IFCHR) {
+	if ((node->mode & S_IFMT) != S_IFREG && (node->mode & S_IFMT) != S_IFCHR
+			&& (node->mode & S_IFMT) != S_IFBLK) {
 		*err = ENOTSUP;
 		return NULL;
 	}
 	if ((node->mode & S_IFMT) == S_IFCHR) {
 		int major = major(node->dev);
-		if (major > dev_list_max) {
+		if (major > cdev_list_max) {
+			*err = ENODEV;
+			return NULL;
+		}
+	}
+	if ((node->mode & S_IFMT) == S_IFBLK) {
+		int major = major(node->dev);
+		if (major > bdev_list_max) {
 			*err = ENODEV;
 			return NULL;
 		}
@@ -223,7 +246,7 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 	if ((f->inode->mode & S_IFMT) == S_IFCHR) {
 		int major = major(f->inode->dev);
 		int minor = minor(f->inode->dev);
-		return dev_list[major].read(minor, buf, count);
+		return cdev_list[major].read(minor, buf, count);
 	}
 	if (f->pos >= f->inode->size) {
 		return -EINVAL;
@@ -231,7 +254,14 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 	if (f->pos + count >= f->inode->size) {
 		count = f->inode->size - f->pos;
 	}
-	int res = f->inode->fs->impl->pread(f->inode, buf, count, f->pos);
+	int res;
+	if ((f->inode->mode & S_IFMT) == S_IFBLK) {
+		int major = major(f->inode->dev);
+		int minor = minor(f->inode->dev);
+		res = bdev_list[major].pread(minor, buf, count, f->pos);
+	} else {
+		res = f->inode->fs->impl->pread(f->inode, buf, count, f->pos);
+	}
 	if (res > 0) {
 		f->pos += res;
 	}
@@ -245,12 +275,19 @@ int vfs_write(struct fd *f, const void *buf, size_t count) {
 	if ((f->inode->mode & S_IFMT) == S_IFCHR) {
 		int major = major(f->inode->dev);
 		int minor = minor(f->inode->dev);
-		return dev_list[major].write(minor, buf, count);
+		return cdev_list[major].write(minor, buf, count);
 	}
 	if ((f->flags & O_ACCMODE) != O_RDONLY && (f->inode->fs->flags & MS_RDONLY)) {
 		return -EROFS;
 	}
-	int res = f->inode->fs->impl->pwrite(f->inode, buf, count, f->pos);
+	int res;
+	if ((f->inode->mode & S_IFMT) == S_IFBLK) {
+		int major = major(f->inode->dev);
+		int minor = minor(f->inode->dev);
+		res = bdev_list[major].pwrite(minor, buf, count, f->pos);
+	} else {
+		res = f->inode->fs->impl->pwrite(f->inode, buf, count, f->pos);
+	}
 	if (res > 0) {
 		f->pos += res;
 	}
@@ -284,4 +321,13 @@ struct inode *vfs_mknod(const char *name, uint32_t mode, uint16_t dev, int *err)
 		return NULL;
 	}
 	return parent->fs->impl->mknodat(parent, dname, mode, dev, err);
+}
+
+int vfs_ioctl(struct fd *f, uint32_t request, void *data) {
+	if ((f->inode->mode & S_IFMT) == S_IFBLK) {
+		int major = major(f->inode->dev);
+		int minor = minor(f->inode->dev);
+		return bdev_list[major].ioctl(minor, request, data);
+	}
+	return -ENOTSUP;
 }

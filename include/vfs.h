@@ -19,12 +19,19 @@ enum {
 enum {
 	S_IFMT	= 0170000,
 	S_IFREG	= 0100000,
+	S_IFBLK	= 0060000,
 	S_IFDIR	= 0040000,
 	S_IFCHR	= 0020000,
 };
 
 enum {
 	MS_RDONLY	= 1,
+};
+
+enum {
+	SEEK_SET	= 0,
+	SEEK_CUR	= 1,
+	SEEK_END	= 2,
 };
 
 struct fs {
@@ -67,8 +74,10 @@ struct fd *vfs_open(const char *path, int flags, int *err);
 int vfs_close(struct fd *i);
 int vfs_read(struct fd *f, void *buf, size_t count);
 int vfs_write(struct fd *f, const void *buf, size_t count);
+int64_t vfs_lseek(struct fd *f, int64_t offset, int whence);
 struct inode *vfs_get_inode(const char *path, int *err);
 int vfs_ensure_dentries(struct inode *node);
 struct inode *vfs_mknod(const char *name, uint32_t mode, uint16_t dev, int *err);
+int vfs_ioctl(struct fd *f, uint32_t request, void *data);
 
 #endif

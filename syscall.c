@@ -282,6 +282,16 @@ static reg_t lseek(int fd, int64_t offset, int whence) {
 	return vfs_lseek(process->fds[fd], offset, whence);
 }
 
+static reg_t ioctl(int fd, uint32_t request, void *data) {
+	struct kthread_states *states;
+	__asm__ ("mrs %0, tpidr_el1" : "=r" (states));
+	struct process_states *process = states->data;
+	if (fd >= FD_MAX || fd < 0 || !process->fds[fd]) {
+		return -EBADF;
+	}
+	return vfs_ioctl(process->fds[fd], request, data);
+}
+
 static reg_t (*syscalls[])() = {
 	getpid,
 	cread,
@@ -302,7 +312,7 @@ static reg_t (*syscalls[])() = {
 	mount,
 	chdir,
 	lseek,
-	syscall_reserved,
+	ioctl,
 	sigreturn, // 20
 };
 

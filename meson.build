@@ -32,6 +32,7 @@ sources = [
   'console/kio.c',
   'cpio.c',
   'dev/console.c',
+  'dev/framebuffer.c',
   'fdt.c',
   'fs/initrd.c',
   'fs/tmpfs.c',
