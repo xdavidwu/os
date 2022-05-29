@@ -175,10 +175,11 @@ struct fd *vfs_open(const char *path, int flags, int *err) {
 	if (!node) {
 		return NULL;
 	}
-	if ((flags & O_ACCMODE) != O_RDONLY && (node->fs->flags & MS_RDONLY)) {
+	// quirk: hw test binary does not set accmode
+	/*if ((flags & O_ACCMODE) != O_RDONLY && (node->fs->flags & MS_RDONLY)) {
 		*err = EROFS;
 		return NULL;
-	}
+	}*/
 	if ((node->mode & S_IFMT) != S_IFREG) {
 		*err = ENOTSUP;
 		return NULL;
@@ -215,6 +216,9 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 int vfs_write(struct fd *f, const void *buf, size_t count) {
 	if ((f->flags & O_ACCMODE) == O_RDONLY) {
 		return -EBADF;
+	}
+	if ((f->flags & O_ACCMODE) != O_RDONLY && (f->inode->fs->flags & MS_RDONLY)) {
+		return -EROFS;
 	}
 	int res = f->inode->fs->impl->pwrite(f->inode, buf, count, f->pos);
 	if (res > 0) {
