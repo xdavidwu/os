@@ -291,7 +291,9 @@ static reg_t (*syscalls[])() = {
 	mkdir,
 	mount,
 	chdir,
-	sigreturn,
+	syscall_reserved,
+	syscall_reserved,
+	sigreturn, // 20
 };
 
 void syscall(struct trapframe *trapframe) {
