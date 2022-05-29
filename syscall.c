@@ -226,6 +226,11 @@ static reg_t mkdir(const char *pathname, uint32_t mode) {
 	return 0;
 }
 
+static reg_t mount(const char *src, const char *target, const char *filesystem,
+		uint32_t flags, const void *data) {
+	return vfs_mount(src, target, filesystem, flags);
+}
+
 static reg_t (*syscalls[])() = {
 	getpid,
 	cread,
@@ -243,7 +248,7 @@ static reg_t (*syscalls[])() = {
 	write,
 	read,
 	mkdir,
-	syscall_reserved,
+	mount,
 	syscall_reserved,
 	sigreturn,
 };
