@@ -73,6 +73,7 @@ static struct inode *tmpfs_mknodat(struct inode *parent, const char *name, uint3
 	parent->entries->inode->size = 0;
 	parent->entries->inode->dev = dev;
 	parent->entries->inode->fs = parent->fs;
+	parent->entries->inode->entries = NULL;
 	parent->size++;
 	return parent->entries->inode;
 }

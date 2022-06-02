@@ -92,6 +92,7 @@ static int initrd_getdents(struct inode *inode) {
 			(*next)->inode->data = cpio;
 			(*next)->inode->size = filesz;
 			(*next)->inode->mode = cpio_get_uint32(cpio_header->c_mode);
+			(*next)->inode->entries = NULL;
 			next = &(*next)->next;
 			count++;
 		} else {
