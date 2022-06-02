@@ -16,7 +16,12 @@ extern void exec_signal_handler(void (*code)(int), uint64_t *sp, int signal, voi
 
 static void kputssync(const char *str) {
 	while (*str) {
-		kconsole->impl->putc(*str);
+		if (*str == '\n') {
+			kconsole->impl->putc('\r');
+			kconsole->impl->putc('\n');
+		} else {
+			kconsole->impl->putc(*str);
+		}
 		str++;
 	}
 }
