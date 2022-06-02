@@ -112,11 +112,11 @@ int process_dup() {
 		new->signal_handlers[a] = process->signal_handlers[a];
 	}
 	int err;
-	process->fds[0] = vfs_open("/dev/uart", O_RDONLY, &err);
-	process->fds[1] = vfs_open("/dev/uart", O_WRONLY, &err);
-	process->fds[2] = vfs_open("/dev/uart", O_WRONLY, &err);
+	new->fds[0] = vfs_open("/dev/uart", O_RDONLY, &err);
+	new->fds[1] = vfs_open("/dev/uart", O_WRONLY, &err);
+	new->fds[2] = vfs_open("/dev/uart", O_WRONLY, &err);
 	for (int a = 3; a < FD_MAX; a++) { // TODO
-		process->fds[a] = NULL;
+		new->fds[a] = NULL;
 	}
 	new->pagetable = pagetable_cow(process->pagetable);
 	__asm__ ("msr DAIFSet, 0xf\nisb");
