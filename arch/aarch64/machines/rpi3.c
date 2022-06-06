@@ -9,6 +9,7 @@
 #include "string.h"
 #include "timer.h"
 #include "vmem.h"
+#include "vendor/grasslab/sdhost.h"
 #include <stdint.h>
 
 uint8_t *initrd_start = (uint8_t *)(HIGH_MEM_OFFSET + 0x8000000);
@@ -123,6 +124,7 @@ void machine_init() {
 	mem_reserve(initrd_start, initrd_end);
 	page_alloc_init();
 	malloc_init();
+	sd_init();
 	main();
 }
 

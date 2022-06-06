@@ -46,6 +46,7 @@ sources = [
   'klibc/string.c',
   'init/main.c',
   'init/kshell.c',
+  'vendor/grasslab/sdhost.c',
 ]
 
 elf = executable('kernel8.elf', sources, include_directories: include_directories('include'))
