@@ -19,6 +19,10 @@ static struct {
 	{0},
 };
 
+static int not_supported() {
+	return -ENOTSUP;
+}
+
 extern int console_read(int minor, void *buf, size_t count);
 extern int console_write(int minor, const void *buf, size_t count);
 
@@ -34,6 +38,8 @@ static int cdev_list_max = 0;
 extern int64_t framebuffer_pread(int minor, void *buf, size_t count, size_t offset);
 extern int64_t framebuffer_pwrite(int minor, const void *buf, size_t count, size_t offset);
 extern int framebuffer_ioctl(int minor, uint32_t request, void *data);
+extern int64_t sdcard_pread(int minor, void *buf, size_t count, size_t offset);
+extern int64_t sdcard_pwrite(int minor, const void *buf, size_t count, size_t offset);
 
 static struct {
 	int64_t (*pread)(int minor, void *buf, size_t count, size_t offset);
@@ -41,9 +47,10 @@ static struct {
 	int (*ioctl)(int minor, uint32_t request, void *data);
 } bdev_list[] = {
 	{ .pread = framebuffer_pread, .pwrite = framebuffer_pwrite, .ioctl = framebuffer_ioctl },
+	{ .pread = sdcard_pread, .pwrite = sdcard_pwrite, .ioctl = not_supported },
 };
 
-static int bdev_list_max = 0;
+static int bdev_list_max = 1;
 
 static struct inode initial_root_node = {
 	.mode = S_IFDIR,

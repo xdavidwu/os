@@ -33,6 +33,7 @@ sources = [
   'cpio.c',
   'dev/console.c',
   'dev/framebuffer.c',
+  'dev/sdcard.c',
   'fdt.c',
   'fs/initrd.c',
   'fs/tmpfs.c',
