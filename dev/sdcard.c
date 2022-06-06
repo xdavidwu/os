@@ -71,8 +71,8 @@ void sdcard_probe() {
 }
 
 int64_t sdcard_pread(int minor, void *buf, size_t count, size_t offset) {
-	if (!minor && !partitions[minor - 1].offset) {
-		return -ENOTSUP;
+	if (minor && !partitions[minor - 1].offset) {
+		return -ENODEV;
 	}
 	if ((offset % SDCARD_SECTOR_SIZE) || (count % SDCARD_SECTOR_SIZE)) {
 		return -ENOTSUP;
@@ -80,7 +80,7 @@ int64_t sdcard_pread(int minor, void *buf, size_t count, size_t offset) {
 	int fromlocal = offset / SDCARD_SECTOR_SIZE;
 	int from = fromlocal + (minor ? partitions[minor - 1].offset : 0);
 	int c = count / SDCARD_SECTOR_SIZE;
-	if (!minor && fromlocal + c > partitions[minor - 1].size) {
+	if (minor && fromlocal + c > partitions[minor - 1].size) {
 		return -EINVAL;
 	}
 	uint8_t *ubuf = buf;
@@ -91,8 +91,8 @@ int64_t sdcard_pread(int minor, void *buf, size_t count, size_t offset) {
 }
 
 int64_t sdcard_pwrite(int minor, const void *buf, size_t count, size_t offset) {
-	if (!minor && !partitions[minor - 1].offset) {
-		return -ENOTSUP;
+	if (minor && !partitions[minor - 1].offset) {
+		return -ENODEV;
 	}
 	if ((offset % SDCARD_SECTOR_SIZE) || (count % SDCARD_SECTOR_SIZE)) {
 		return -ENOTSUP;
@@ -100,7 +100,7 @@ int64_t sdcard_pwrite(int minor, const void *buf, size_t count, size_t offset) {
 	int fromlocal = offset / SDCARD_SECTOR_SIZE;
 	int from = fromlocal + (minor ? partitions[minor - 1].offset : 0);
 	int c = count / SDCARD_SECTOR_SIZE;
-	if (!minor && fromlocal + c > partitions[minor - 1].size) {
+	if (minor && fromlocal + c > partitions[minor - 1].size) {
 		return -EINVAL;
 	}
 	const uint8_t *ubuf = buf;
