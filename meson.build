@@ -35,6 +35,7 @@ sources = [
   'dev/framebuffer.c',
   'dev/sdcard.c',
   'fdt.c',
+  'fs/fat32.c',
   'fs/initrd.c',
   'fs/tmpfs.c',
   'fs/vfs.c',

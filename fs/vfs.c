@@ -9,6 +9,7 @@
 
 extern struct vfs_impl initrd_impl;
 extern struct vfs_impl tmpfs_impl;
+extern struct vfs_impl fat32_impl;
 
 static struct {
 	const char *name;
@@ -16,6 +17,7 @@ static struct {
 } fs_list[] = {
 	{"initrd", &initrd_impl},
 	{"tmpfs", &tmpfs_impl},
+	{"fat32", &fat32_impl},
 	{0},
 };
 
