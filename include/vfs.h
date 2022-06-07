@@ -6,7 +6,7 @@
 
 #define major(x)	((x) >> 8)
 #define minor(x)	((x) & 0xff)
-#define makedev(x, y)	(((x) << 8) & y)
+#define makedev(x, y)	(((x) << 8) | y)
 
 enum {
 	O_ACCMODE	= 03,
