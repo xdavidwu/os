@@ -85,7 +85,7 @@ int64_t sdcard_pread(int minor, void *buf, size_t count, size_t offset) {
 	}
 	uint8_t *ubuf = buf;
 	for (int i = 0; i < c; i++) {
-		readblock(from + c, ubuf + i * SDCARD_SECTOR_SIZE);
+		readblock(from + i, ubuf + i * SDCARD_SECTOR_SIZE);
 	}
 	return count;
 }
@@ -105,7 +105,7 @@ int64_t sdcard_pwrite(int minor, const void *buf, size_t count, size_t offset) {
 	}
 	const uint8_t *ubuf = buf;
 	for (int i = 0; i < c; i++) {
-		writeblock(from + c, (void *)(ubuf + i * SDCARD_SECTOR_SIZE));
+		writeblock(from + i, (void *)(ubuf + i * SDCARD_SECTOR_SIZE));
 	}
 	return count;
 }
