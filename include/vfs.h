@@ -37,6 +37,7 @@ enum {
 struct fs {
 	uint32_t flags;
 	struct vfs_impl *impl;
+	void *data;
 };
 
 struct inode {
