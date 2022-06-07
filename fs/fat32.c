@@ -78,6 +78,21 @@ static void kput32x(uint32_t val) {
 	kputs(hexbuf);
 }
 
+static int next_cluster(uint32_t current, struct fat32_state *state) {
+	int entries_per_sector = state->bytes_per_sector / 4;
+	int offset = (state->fat_offset + current / entries_per_sector) * state->bytes_per_sector;
+	uint32_t entries[entries_per_sector];
+	int res = vfs_pread(state->dev, entries, state->bytes_per_sector, offset);
+	if (res < 0) {
+		return res;
+	}
+	int val = entries[current % entries_per_sector] & 0x0FFFFFFF;
+	if (val >= 0x0FFFFFF7) {
+		return 0;
+	}
+	return val;
+}
+
 static int fat32_mount(const char *source, struct inode *target, uint32_t flags) {
 	if (flags != MS_RDONLY) {
 		return -ENOTSUP;
@@ -122,63 +137,66 @@ static int fat32_mount(const char *source, struct inode *target, uint32_t flags)
 
 static int fat32_getdents(struct inode *inode) {
 	struct fat32_state *state = inode->fs->data;
-	int offset = ((uint64_t)inode->data * state->sectors_per_cluster +
-			state->data_offset) * state->bytes_per_sector;
 	struct dentry **next = &inode->entries;
 	int count = 0;
-	for (int i = 0; i < state->sectors_per_cluster; i++) {
-		int l = state->bytes_per_sector / sizeof(struct fat32_entry);
-		struct fat32_entry entries[l];
-		int res = vfs_pread(state->dev, entries, state->bytes_per_sector, offset + i * state->bytes_per_sector);
-		if (res < 0) {
-			return res;
-		}
-		for (int j = 0; j < l; j++) {
-			if (!entries[j].name[0]) {
-				*next = NULL;
-				inode->size = count;
-				return count;
+	uint64_t cluster = (uint64_t)inode->data;
+	do {
+		int offset = (cluster * state->sectors_per_cluster +
+				state->data_offset) * state->bytes_per_sector;
+		for (int i = 0; i < state->sectors_per_cluster; i++) {
+			int l = state->bytes_per_sector / sizeof(struct fat32_entry);
+			struct fat32_entry entries[l];
+			int res = vfs_pread(state->dev, entries, state->bytes_per_sector, offset + i * state->bytes_per_sector);
+			if (res < 0) {
+				return res;
 			}
-			if (entries[j].name[0] == 0xe5) {
-				continue;
-			}
-			if (entries[j].attr == FAT_ATTR_LFN) {
-				continue;
-			}
-			*next = malloc(sizeof(struct dentry));
-			(*next)->name = malloc(sizeof(char) * 13);
-			strncpy((*next)->name, entries[j].name, 8);
-			(*next)->name[8] = '\0';
-			int idx = 7;
-			while (idx && (*next)->name[idx] == ' ') {
-				(*next)->name[idx] = '\0';
-				idx--;
-			}
-			if (entries[j].ext[0]) {
-				idx++;
-				(*next)->name[idx] = '.';
-				idx++;
-				strncpy(&(*next)->name[idx], entries[j].ext, 3);
-				idx += 3;
-				(*next)->name[idx] = '\0';
-				idx--;
+			for (int j = 0; j < l; j++) {
+				if (!entries[j].name[0]) {
+					*next = NULL;
+					inode->size = count;
+					return count;
+				}
+				if (entries[j].name[0] == 0xe5) {
+					continue;
+				}
+				if (entries[j].attr == FAT_ATTR_LFN) {
+					continue;
+				}
+				*next = malloc(sizeof(struct dentry));
+				(*next)->name = malloc(sizeof(char) * 13);
+				strncpy((*next)->name, entries[j].name, 8);
+				(*next)->name[8] = '\0';
+				int idx = 7;
 				while (idx && (*next)->name[idx] == ' ') {
 					(*next)->name[idx] = '\0';
 					idx--;
 				}
+				if (entries[j].ext[0]) {
+					idx++;
+					(*next)->name[idx] = '.';
+					idx++;
+					strncpy(&(*next)->name[idx], entries[j].ext, 3);
+					idx += 3;
+					(*next)->name[idx] = '\0';
+					idx--;
+					while (idx && (*next)->name[idx] == ' ') {
+						(*next)->name[idx] = '\0';
+						idx--;
+					}
+				}
+				(*next)->len = strlen((*next)->name);
+				(*next)->inode = malloc(sizeof(struct inode));
+				(*next)->inode->fs = inode->fs;
+				(*next)->inode->data = (void *)(((uint64_t)FROM_LE16(entries[j].cluster_high) << 16) |
+					FROM_LE16(entries[j].cluster_low));
+				(*next)->inode->size = FROM_LE32(entries[j].sz);
+				(*next)->inode->mode = attr_to_mode(entries[j].attr);
+				(*next)->inode->entries = NULL;
+				next = &(*next)->next;
+				count++;
 			}
-			(*next)->len = strlen((*next)->name);
-			(*next)->inode = malloc(sizeof(struct inode));
-			(*next)->inode->fs = inode->fs;
-			(*next)->inode->data = (void *)(((uint64_t)FROM_LE16(entries[j].cluster_high) << 16) |
-				FROM_LE16(entries[j].cluster_low));
-			(*next)->inode->size = FROM_LE32(entries[j].sz);
-			(*next)->inode->mode = attr_to_mode(entries[j].attr);
-			(*next)->inode->entries = NULL;
-			next = &(*next)->next;
-			count++;
 		}
-	}
+	} while ((cluster = next_cluster(cluster, state)));
 	*next = NULL;
 	inode->size = count;
 	return count;
