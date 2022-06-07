@@ -275,6 +275,27 @@ int vfs_read(struct fd *f, void *buf, size_t count) {
 	return res;
 }
 
+int vfs_pread(struct fd *f, void *buf, size_t count, size_t pos) {
+	if ((f->flags & O_ACCMODE) == O_WRONLY) {
+		return -EBADF;
+	}
+	if ((f->inode->mode & S_IFMT) == S_IFCHR) {
+		return -EBADF;
+	}
+	int res;
+	if ((f->inode->mode & S_IFMT) == S_IFBLK) {
+		int major = major(f->inode->dev);
+		int minor = minor(f->inode->dev);
+		res = bdev_list[major].pread(minor, buf, count, pos);
+	} else {
+		if (pos + count >= f->inode->size) {
+			count = f->inode->size - pos;
+		}
+		res = f->inode->fs->impl->pread(f->inode, buf, count, pos);
+	}
+	return res;
+}
+
 int vfs_write(struct fd *f, const void *buf, size_t count) {
 	if ((f->flags & O_ACCMODE) == O_RDONLY) {
 		return -EBADF;
