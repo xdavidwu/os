@@ -6,6 +6,7 @@
 #include "string.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #define FAT_BPB_BYTES_PER_SECTOR_OFFSET	0x0b
@@ -203,6 +204,54 @@ static int fat32_getdents(struct inode *inode) {
 }
 
 static int64_t fat32_pread(struct inode *inode, void *buf, size_t count, size_t offset) {
-	return -ENOTSUP;
+	struct fat32_state *state = inode->fs->data;
+	int cluster_now = 0;
+	uint64_t cluster = (uint64_t)inode->data;
+	size_t cluster_size = state->bytes_per_sector * state->sectors_per_cluster;
+	int read = 0;
+	uint8_t *ubuf = buf;
+	do {
+		if (!count) {
+			break;
+		}
+		int cluster_end = cluster_now + cluster_size;
+		if (offset < cluster_end) {
+			int max_available = cluster_end - offset;
+			int local_count = count < max_available ? count : max_available;
+			int left = local_count;
+
+			uint8_t sector[state->bytes_per_sector];
+			size_t cluster_offset = (cluster * state->sectors_per_cluster +
+				state->data_offset) * state->bytes_per_sector;
+			int sector_idx = (offset - cluster_now) / state->bytes_per_sector;
+			int in_sector_offset = (offset - cluster_now) % state->bytes_per_sector;
+			int res = vfs_pread(state->dev, sector, state->bytes_per_sector,
+				cluster_offset + sector_idx * state->bytes_per_sector);
+			if (res < 0) {
+				return -res;
+			}
+			while (left && in_sector_offset < state->bytes_per_sector) {
+				ubuf[read++] = sector[in_sector_offset++];
+				left--;
+			}
+			for (int i = sector_idx + 1; left && i < state->bytes_per_sector; i++) {
+				int res = vfs_pread(state->dev, sector, state->bytes_per_sector,
+					cluster_offset + i * state->bytes_per_sector);
+				if (res < 0) {
+					return -res;
+				}
+				int j = 0;
+				while (left && j < state->bytes_per_sector) {
+					ubuf[read++] = sector[j++];
+					left--;
+				}
+			}
+
+			offset += local_count;
+			count -= local_count;
+		}
+		cluster_now = cluster_end;
+	} while ((cluster = next_cluster(cluster, state)));
+	return read;
 }
 
