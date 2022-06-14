@@ -16,7 +16,7 @@ void main() {
 	vfs_mknod("/dev", S_IFDIR | 0644, 0, &err);
 	vfs_mknod("/dev/uart", S_IFCHR | 0644, makedev(0, 0), &err);
 	vfs_mknod("/dev/framebuffer", S_IFBLK | 0644, makedev(0, 0), &err);
-	vfs_mknod("/sdcard", S_IFDIR | 0644, 0, &err);
+	vfs_mknod("/boot", S_IFDIR | 0644, 0, &err);
 	sdcard_probe();
 	int res = vfs_mount("", "/initramfs", "initrd", MS_RDONLY);
 	if (res < 0) {
@@ -24,7 +24,7 @@ void main() {
 		kputc('0' + -res);
 		kputc('\n');
 	}
-	res = vfs_mount("/dev/sdcard0p1", "/sdcard", "fat32", MS_RDONLY);
+	res = vfs_mount("/dev/sdcard0p1", "/boot", "fat32", MS_RDONLY);
 	if (res < 0) {
 		kputs("Failed to mount sdcard: ");
 		kputc('0' + -res);
