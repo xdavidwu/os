@@ -163,6 +163,10 @@ static int fat32_getdents(struct inode *inode) {
 				if (entries[j].attr == FAT_ATTR_LFN) {
 					continue;
 				}
+				if (!strncmp(entries[j].name, ".           ", 11) ||
+						!strncmp(entries[j].name, "..          ", 11)) {
+					continue;
+				}
 				*next = malloc(sizeof(struct dentry));
 				(*next)->name = malloc(sizeof(char) * 13);
 				strncpy((*next)->name, entries[j].name, 8);
