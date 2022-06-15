@@ -292,6 +292,13 @@ static reg_t ioctl(int fd, uint32_t request, void *data) {
 	return vfs_ioctl(process->fds[fd], request, data);
 }
 
+extern void sdcard_sync();
+
+static reg_t sync() {
+	sdcard_sync();
+	return 0;
+}
+
 static reg_t (*syscalls[])() = {
 	getpid,
 	cread,
@@ -313,7 +320,8 @@ static reg_t (*syscalls[])() = {
 	chdir,
 	lseek,
 	ioctl,
-	sigreturn, // 20
+	sync, // 20
+	sigreturn,
 };
 
 void syscall(struct trapframe *trapframe) {

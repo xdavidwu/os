@@ -4,6 +4,7 @@
 #include "vfs.h"
 #include "vendor/grasslab/sdhost.h"
 #include "stdlib.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -20,6 +21,15 @@ struct partition_entry {
 	uint32_t offset;
 	uint32_t size;
 };
+
+struct cache_entry {
+	int sector;
+	uint8_t data[SDCARD_SECTOR_SIZE];
+	bool dirty;
+	struct cache_entry *next;
+};
+
+static struct cache_entry *cache = NULL;
 
 static struct partition_entry partitions[4];
 
@@ -85,7 +95,30 @@ int64_t sdcard_pread(int minor, void *buf, size_t count, size_t offset) {
 	}
 	uint8_t *ubuf = buf;
 	for (int i = 0; i < c; i++) {
+		struct cache_entry *cur = cache;
+		bool found = false;
+		while (cur) {
+			if (cur->sector == from + i) {
+				for (int j = 0; j < SDCARD_SECTOR_SIZE; j++) {
+					ubuf[i * SDCARD_SECTOR_SIZE + j] = cur->data[j];
+				}
+				found = true;
+				break;
+			}
+			cur = cur->next;
+		}
+		if (found) {
+			continue;
+		}
 		readblock(from + i, ubuf + i * SDCARD_SECTOR_SIZE);
+		struct cache_entry *new = malloc(sizeof(struct cache_entry));
+		new->dirty = false;
+		new->sector = from + i;
+		for (int j = 0; j < SDCARD_SECTOR_SIZE; j++) {
+			new->data[j] = ubuf[i * SDCARD_SECTOR_SIZE + j];
+		}
+		new->next = cache;
+		cache = new;
 	}
 	return count;
 }
@@ -105,8 +138,41 @@ int64_t sdcard_pwrite(int minor, const void *buf, size_t count, size_t offset) {
 	}
 	const uint8_t *ubuf = buf;
 	for (int i = 0; i < c; i++) {
-		writeblock(from + i, (void *)(ubuf + i * SDCARD_SECTOR_SIZE));
+		struct cache_entry *cur = cache;
+		bool found = false;
+		while (cur) {
+			if (cur->sector == from + i) {
+				for (int j = 0; j < SDCARD_SECTOR_SIZE; j++) {
+					cur->data[j] = ubuf[i * SDCARD_SECTOR_SIZE + j];
+				}
+				cur->dirty = true;
+				found = true;
+				break;
+			}
+			cur = cur->next;
+		}
+		if (found) {
+			continue;
+		}
+		struct cache_entry *new = malloc(sizeof(struct cache_entry));
+		new->dirty = true;
+		new->sector = from + i;
+		for (int j = 0; j < SDCARD_SECTOR_SIZE; j++) {
+			new->data[j] = ubuf[i * SDCARD_SECTOR_SIZE + j];
+		}
+		new->next = cache;
+		cache = new;
 	}
 	return count;
 }
 
+void sdcard_sync() {
+	struct cache_entry *cur = cache;
+	while (cur) {
+		if (cur->dirty) {
+			writeblock(cur->sector, cur->data);
+			cur->dirty = false;
+		}
+		cur = cur->next;
+	}
+}
