@@ -24,7 +24,7 @@ void main() {
 		kputc('0' + -res);
 		kputc('\n');
 	}
-	res = vfs_mount("/dev/sdcard0p1", "/boot", "fat32", MS_RDONLY);
+	res = vfs_mount("/dev/sdcard0p1", "/boot", "fat32", 0);
 	if (res < 0) {
 		kputs("Failed to mount sdcard: ");
 		kputc('0' + -res);

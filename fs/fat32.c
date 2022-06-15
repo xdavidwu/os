@@ -22,11 +22,15 @@
 static int64_t fat32_pread(struct inode *inode, void *buf, size_t count, size_t offset);
 static int fat32_getdents(struct inode *inode);
 static int fat32_mount(const char *source, struct inode *target, uint32_t flags);
+static struct inode *fat32_mknodat(struct inode *parent, const char *name, uint32_t mode, uint16_t dev, int *err);
+static int64_t fat32_pwrite(struct inode *inode, const void *buf, size_t count, size_t offset);
 
 struct vfs_impl fat32_impl = {
 	.pread = fat32_pread,
+	.pwrite = fat32_pwrite,
 	.getdents = fat32_getdents,
 	.mount = fat32_mount,
+	.mknodat = fat32_mknodat,
 };
 
 struct fat32_state {
@@ -50,6 +54,12 @@ struct fat32_entry {
 	uint16_t mtime_1, mtime_2;
 	uint16_t cluster_low;
 	uint32_t sz;
+};
+
+struct fat32_location {
+	int data_cluster;
+	int entry_cluster;
+	int entry_offset;
 };
 
 enum {
@@ -94,12 +104,36 @@ static int next_cluster(uint32_t current, struct fat32_state *state) {
 	return val;
 }
 
-static int fat32_mount(const char *source, struct inode *target, uint32_t flags) {
-	if (flags != MS_RDONLY) {
-		return -ENOTSUP;
+static int find_free_cluster(struct fat32_state *state) {
+	int len = state->fat_size / sizeof(uint32_t);
+	int entries_per_sector = state->bytes_per_sector / 4;
+	uint32_t entries[entries_per_sector];
+	int current_offset = 0;
+	for (int current = 2; current < len; current++) {
+		int offset = (state->fat_offset + current / entries_per_sector) * state->bytes_per_sector;
+		if (current_offset != offset) {
+			int res = vfs_pread(state->dev, entries, state->bytes_per_sector, offset);
+			if (res < 0) {
+				return res;
+			}
+			current_offset = offset;
+		}
+		int val = entries[current % entries_per_sector] & 0x0FFFFFFF;
+		if (!val) {
+			entries[current % entries_per_sector] = (entries[current % entries_per_sector] & 0xF0000000) & 0x0FFFFFF7;
+			int res = vfs_pwrite(state->dev, entries, state->bytes_per_sector, offset);
+			if (res < 0) {
+				return res;
+			}
+			return current;
+		}
 	}
+	return -ENOENT;
+}
+
+static int fat32_mount(const char *source, struct inode *target, uint32_t flags) {
 	int err;
-	struct fd *dev = vfs_open(source, O_RDONLY, &err);
+	struct fd *dev = vfs_open(source, O_RDWR, &err);
 	if (!dev) {
 		return -err;
 	}
@@ -132,7 +166,9 @@ static int fat32_mount(const char *source, struct inode *target, uint32_t flags)
 	state->fat_count = br[FAT_BPB_FAT_COUNT_OFFSET];
 	state->fat_size = FROM_LE32(*(uint32_t *)&br[FAT32_EBR_FAT_SIZE_OFFSET]);
 	state->data_offset = state->fat_offset + state->fat_size * state->fat_count - 2;
-	target->data = (void *)((uint64_t) FROM_LE32(*((uint32_t *)&br[FAT32_EBR_ROOT_OFFSET])));
+	struct fat32_location *loc = malloc(sizeof(struct fat32_location));
+	target->data = loc;
+	loc->data_cluster = FROM_LE32(*((uint32_t *)&br[FAT32_EBR_ROOT_OFFSET]));
 	return 0;
 }
 
@@ -140,7 +176,7 @@ static int fat32_getdents(struct inode *inode) {
 	struct fat32_state *state = inode->fs->data;
 	struct dentry **next = &inode->entries;
 	int count = 0;
-	uint64_t cluster = (uint64_t)inode->data;
+	uint64_t cluster = ((struct fat32_location *)inode->data)->data_cluster;
 	do {
 		int offset = (cluster * state->sectors_per_cluster +
 				state->data_offset) * state->bytes_per_sector;
@@ -192,8 +228,12 @@ static int fat32_getdents(struct inode *inode) {
 				(*next)->len = strlen((*next)->name);
 				(*next)->inode = malloc(sizeof(struct inode));
 				(*next)->inode->fs = inode->fs;
-				(*next)->inode->data = (void *)(((uint64_t)FROM_LE16(entries[j].cluster_high) << 16) |
-					FROM_LE16(entries[j].cluster_low));
+				struct fat32_location *loc = malloc(sizeof(struct fat32_location));
+				(*next)->inode->data = loc;
+				loc->data_cluster = ((uint32_t)FROM_LE16(entries[j].cluster_high) << 16) |
+					FROM_LE16(entries[j].cluster_low);
+				loc->entry_cluster = cluster;
+				loc->entry_offset = i * l + j;
 				(*next)->inode->size = FROM_LE32(entries[j].sz);
 				(*next)->inode->mode = attr_to_mode(entries[j].attr);
 				(*next)->inode->entries = NULL;
@@ -210,7 +250,7 @@ static int fat32_getdents(struct inode *inode) {
 static int64_t fat32_pread(struct inode *inode, void *buf, size_t count, size_t offset) {
 	struct fat32_state *state = inode->fs->data;
 	int cluster_now = 0;
-	uint64_t cluster = (uint64_t)inode->data;
+	uint64_t cluster = ((struct fat32_location *)inode->data)->data_cluster;
 	size_t cluster_size = state->bytes_per_sector * state->sectors_per_cluster;
 	int read = 0;
 	uint8_t *ubuf = buf;
@@ -259,3 +299,146 @@ static int64_t fat32_pread(struct inode *inode, void *buf, size_t count, size_t 
 	return read;
 }
 
+static struct inode *fat32_mknodat(struct inode *parent, const char *name, uint32_t mode, uint16_t dev, int *err) {
+	if ((mode & S_IFMT) != S_IFREG) {
+		*err = ENOTSUP;
+		return NULL;
+	}
+	char rname[8] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, ext[3] = {' ', ' ', ' '};
+	char dname[14];
+	int didx = 0;
+	int i = 0;
+	for (; i < 8; i++) {
+		if (!name[i] || name[i] == '.') {
+			break;
+		}
+		rname[i] = name[i];
+		dname[didx++] = name[i];
+	}
+	if (name[i]) {
+		while (name[i] != '.' && name[i]) {
+			i++;
+		}
+		if (name[i] == '.') {
+			dname[didx++] = '.';
+			for (int j = 0; j < 3; j++) {
+				i++;
+				if (!name[i]) {
+					break;
+				}
+				ext[j] = name[i];
+				dname[didx++] = name[i];
+			}
+		}
+	}
+	dname[didx] = '\0';
+	struct fat32_state *state = parent->fs->data;
+	int data_cluster = find_free_cluster(state);
+	if (data_cluster < 0) {
+		kputs("no cluster available\n");
+		*err = -data_cluster;
+		return NULL;
+	}
+	uint64_t cluster = ((struct fat32_location *)parent->data)->data_cluster;
+	struct dentry *bak = parent->entries;
+	int entry_offset;
+	do {
+		int offset = (cluster * state->sectors_per_cluster +
+				state->data_offset) * state->bytes_per_sector;
+		for (int i = 0; i < state->sectors_per_cluster; i++) {
+			int l = state->bytes_per_sector / sizeof(struct fat32_entry);
+			struct fat32_entry entries[l];
+			int res = vfs_pread(state->dev, entries, state->bytes_per_sector, offset + i * state->bytes_per_sector);
+			if (res < 0) {
+				kputs("read failed\n");
+				*err = -res;
+				return NULL;
+			}
+			for (int j = 0; j < l; j++) {
+				if (!entries[j].name[0] || entries[j].name[0] == 0xe5) {
+					entry_offset = i * l + j;
+					for (int k = 0; k < 8; k++) {
+						entries[j].name[k] = rname[k];
+					}
+					for (int k = 0; k < 3; k++) {
+						entries[j].ext[k] = ext[k];
+					}
+					entries[j].attr = 0;
+					entries[j].cluster_high = data_cluster >> 16;
+					entries[j].cluster_low = data_cluster;
+					entries[j].sz = 0;
+					int res = vfs_pwrite(state->dev, entries, state->bytes_per_sector, offset + i * state->bytes_per_sector);
+					if (res < 0) {
+						kputs("write failed\n");
+						*err = -res;
+						return NULL;
+					}
+					goto created;
+				}
+			}
+		}
+	} while ((cluster = next_cluster(cluster, state)));
+	kputs("no entries available\n");
+	*err = ENOTSUP;
+	return NULL;
+created:
+	parent->entries = malloc(sizeof(struct dentry));
+	parent->entries->next = bak;
+	parent->entries->name = strdup(dname);
+	parent->entries->len = strlen(dname);
+	parent->entries->inode = malloc(sizeof(struct inode));
+	parent->entries->inode->mode = mode;
+	parent->entries->inode->size = 0;
+	parent->entries->inode->dev = dev;
+	parent->entries->inode->fs = parent->fs;
+	parent->entries->inode->entries = NULL;
+	struct fat32_location *loc = malloc(sizeof(struct fat32_location));
+	parent->entries->inode->data = loc;
+	loc->data_cluster = data_cluster;
+	loc->entry_cluster = cluster;
+	loc->entry_offset = entry_offset;
+	parent->size++;
+	return parent->entries->inode;
+}
+
+static int64_t fat32_pwrite(struct inode *inode, const void *buf, size_t count, size_t offset) {
+	struct fat32_location *loc = inode->data;
+	struct fat32_state *state = inode->fs->data;
+	if (offset + count > state->bytes_per_sector) {
+		return -EMFILE;
+	}
+	uint8_t sector[state->bytes_per_sector];
+	size_t cluster_offset = (loc->data_cluster * state->sectors_per_cluster +
+		state->data_offset) * state->bytes_per_sector;
+	int res = vfs_pread(state->dev, sector, state->bytes_per_sector, cluster_offset);
+	if (res < 0) {
+		return res;
+	}
+	const uint8_t *c = buf;
+	uint8_t *s = sector + offset;
+	size_t sz = count;
+	while (sz--) {
+		*s++ = *c++;
+	}
+	res = vfs_pwrite(state->dev, sector, state->bytes_per_sector, cluster_offset);
+	if (res < 0) {
+		return res;
+	}
+	if (offset + count > inode->size) {
+		int l = state->bytes_per_sector / sizeof(struct fat32_entry);
+		int entry_sector_offset = (loc->entry_cluster * state->sectors_per_cluster +
+			state->data_offset + loc->entry_offset / l) * state->bytes_per_sector;
+		struct fat32_entry entries[l];
+		int res = vfs_pread(state->dev, entries, state->bytes_per_sector, entry_sector_offset);
+		if (res < 0) {
+			return res;
+		}
+		inode->size = offset + count;
+		entries[loc->entry_offset % l].sz = inode->size;
+		res = vfs_pwrite(state->dev, entries, state->bytes_per_sector, entry_sector_offset);
+		if (res < 0) {
+			return res;
+		}
+	}
+	return count;
+}

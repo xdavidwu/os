@@ -298,6 +298,24 @@ int vfs_pread(struct fd *f, void *buf, size_t count, size_t pos) {
 	return res;
 }
 
+int vfs_pwrite(struct fd *f, const void *buf, size_t count, size_t pos) {
+	if ((f->flags & O_ACCMODE) == O_RDONLY) {
+		return -EBADF;
+	}
+	if ((f->inode->mode & S_IFMT) == S_IFCHR) {
+		return -EBADF;
+	}
+	int res;
+	if ((f->inode->mode & S_IFMT) == S_IFBLK) {
+		int major = major(f->inode->dev);
+		int minor = minor(f->inode->dev);
+		res = bdev_list[major].pwrite(minor, buf, count, pos);
+	} else {
+		res = f->inode->fs->impl->pwrite(f->inode, buf, count, pos);
+	}
+	return res;
+}
+
 int vfs_write(struct fd *f, const void *buf, size_t count) {
 	if ((f->flags & O_ACCMODE) == O_RDONLY) {
 		return -EBADF;

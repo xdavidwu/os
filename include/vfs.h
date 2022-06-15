@@ -81,5 +81,6 @@ int vfs_ensure_dentries(struct inode *node);
 struct inode *vfs_mknod(const char *name, uint32_t mode, uint16_t dev, int *err);
 int vfs_ioctl(struct fd *f, uint32_t request, void *data);
 int vfs_pread(struct fd *f, void *buf, size_t count, size_t pos);
+int vfs_pwrite(struct fd *f, const void *buf, size_t count, size_t pos);
 
 #endif
